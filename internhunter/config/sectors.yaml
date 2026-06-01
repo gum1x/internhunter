@@ -1,0 +1,117 @@
+software:
+  - software engineer
+  - swe
+  - backend
+  - frontend
+  - full stack
+  - fullstack
+  - developer
+  - programming
+  - web development
+  - mobile
+  - ios
+  - android
+  - devops
+  - platform
+  - infrastructure
+  - systems
+
+data_ml_ai:
+  - data science
+  - data scientist
+  - machine learning
+  - ml
+  - artificial intelligence
+  - ai
+  - deep learning
+  - nlp
+  - computer vision
+  - data engineer
+  - data analyst
+  - analytics
+  - llm
+  - research scientist
+  - applied scientist
+
+startups:
+  - startup
+  - early stage
+  - seed
+  - founding
+  - founder
+  - generalist
+  - 0 to 1
+  - scrappy
+  - fast paced
+
+venture_capital:
+  - venture capital
+  - vc
+  - investor
+  - investment analyst
+  - private equity
+  - growth equity
+  - deal sourcing
+  - portfolio
+  - fund
+
+finance_fintech:
+  - finance
+  - fintech
+  - financial
+  - quant
+  - quantitative
+  - trading
+  - trader
+  - markets
+  - banking
+  - investment banking
+  - risk
+  - payments
+  - crypto
+  - blockchain
+
+marketing:
+  - marketing
+  - growth
+  - brand
+  - content
+  - social media
+  - seo
+  - demand generation
+  - communications
+  - pr
+  - advertising
+
+product:
+  - product manager
+  - product management
+  - pm
+  - product owner
+  - associate product
+  - apm
+  - product strategy
+  - product analyst
+
+design:
+  - design
+  - designer
+  - ux
+  - ui
+  - user experience
+  - user interface
+  - product design
+  - visual design
+  - graphic design
+  - interaction design
+
+general_tech:
+  - tech
+  - technology
+  - engineering
+  - it
+  - technical
+  - operations
+  - solutions
+  - support engineer
+  - sales engineer

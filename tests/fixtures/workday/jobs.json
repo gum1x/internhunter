@@ -1,0 +1,19 @@
+{
+  "total": 2,
+  "jobPostings": [
+    {
+      "title": "Software Engineering Intern",
+      "externalPath": "/job/Berlin/Software-Engineering-Intern_R-12345",
+      "locationsText": "Berlin, Germany",
+      "postedOn": "Posted 3 Days Ago",
+      "bulletFields": ["R-12345"]
+    },
+    {
+      "title": "Senior Backend Engineer",
+      "externalPath": "/job/Remote/Senior-Backend-Engineer_R-67890",
+      "locationsText": "Remote",
+      "postedOn": "Posted 30+ Days Ago",
+      "bulletFields": ["R-67890"]
+    }
+  ]
+}

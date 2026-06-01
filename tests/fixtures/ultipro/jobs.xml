@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Opportunities>
+  <Opportunity>
+    <Id>2001</Id>
+    <Title>Software Engineering Intern</Title>
+    <Location>Berlin, BE, DE</Location>
+    <PostedDate>2026-05-01</PostedDate>
+    <Url>https://recruiting.ultipro.com/ACM1001/JobBoard/abcd/OpportunityDetail?opportunityId=2001</Url>
+  </Opportunity>
+  <Opportunity>
+    <Id>2002</Id>
+    <Title>Senior Backend Engineer</Title>
+    <Location>Remote</Location>
+    <PostedDate>2026-04-15</PostedDate>
+    <Url>https://recruiting.ultipro.com/ACM1001/JobBoard/abcd/OpportunityDetail?opportunityId=2002</Url>
+  </Opportunity>
+</Opportunities>

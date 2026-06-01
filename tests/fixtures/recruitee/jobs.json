@@ -1,0 +1,38 @@
+{
+  "offers": [
+    {
+      "id": 1840271,
+      "title": "Software Engineering Intern",
+      "slug": "software-engineering-intern",
+      "careers_url": "https://acme.recruitee.com/o/software-engineering-intern",
+      "careers_apply_url": "https://acme.recruitee.com/o/software-engineering-intern/c/new",
+      "description": "<p>Join our engineering team this <strong>summer</strong> as a paid intern. You will build features in Python and ship to production.</p>",
+      "requirements": "<ul><li>Currently pursuing a Bachelor's degree in Computer Science</li><li>Familiarity with Python</li></ul>",
+      "location": "Berlin, Berlin, Germany",
+      "city": "Berlin",
+      "state_code": "BE",
+      "country_code": "DE",
+      "department": "Engineering",
+      "created_at": "2026-05-12T09:30:00.000+02:00",
+      "employment_type_code": "internship",
+      "remote": false
+    },
+    {
+      "id": 1840999,
+      "title": "Senior Backend Engineer",
+      "slug": "senior-backend-engineer",
+      "careers_url": "https://acme.recruitee.com/o/senior-backend-engineer",
+      "careers_apply_url": "https://acme.recruitee.com/o/senior-backend-engineer/c/new",
+      "description": "<p>We are looking for an experienced backend engineer to lead our platform team.</p>",
+      "requirements": "<ul><li>5+ years of backend experience</li></ul>",
+      "location": "Remote",
+      "city": null,
+      "state_code": null,
+      "country_code": null,
+      "department": "Engineering",
+      "created_at": "2026-04-01T12:00:00.000+02:00",
+      "employment_type_code": "full_time",
+      "remote": true
+    }
+  ]
+}

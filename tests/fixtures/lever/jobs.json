@@ -1,0 +1,39 @@
+[
+  {
+    "id": "f2a1c3de-1111-4a2b-9c3d-aaaaaaaaaaaa",
+    "text": "Software Engineering Intern, Summer 2026",
+    "categories": {
+      "location": "San Francisco, CA",
+      "team": "Engineering",
+      "commitment": "Internship"
+    },
+    "hostedUrl": "https://jobs.lever.co/acme/f2a1c3de-1111-4a2b-9c3d-aaaaaaaaaaaa",
+    "applyUrl": "https://jobs.lever.co/acme/f2a1c3de-1111-4a2b-9c3d-aaaaaaaaaaaa/apply",
+    "createdAt": 1716163200000,
+    "descriptionPlain": "Join our team for a paid summer internship working on backend services. Applications are reviewed on a rolling basis.",
+    "description": "<div><p>Join our team for a <strong>paid summer internship</strong> working on backend services. Applications are reviewed on a rolling basis.</p></div>",
+    "lists": [
+      {
+        "text": "What you'll do",
+        "content": "<ul><li>Build APIs</li><li>Write tests</li></ul>"
+      }
+    ],
+    "additional": "Equal opportunity employer."
+  },
+  {
+    "id": "b7e9f012-2222-4d5e-8f6a-bbbbbbbbbbbb",
+    "text": "Senior Backend Engineer",
+    "categories": {
+      "location": "Remote",
+      "team": "Platform",
+      "commitment": "Full-time"
+    },
+    "hostedUrl": "https://jobs.lever.co/acme/b7e9f012-2222-4d5e-8f6a-bbbbbbbbbbbb",
+    "applyUrl": "https://jobs.lever.co/acme/b7e9f012-2222-4d5e-8f6a-bbbbbbbbbbbb/apply",
+    "createdAt": 1715040000000,
+    "descriptionPlain": "We are looking for a seasoned backend engineer to lead platform initiatives.",
+    "description": "<div><p>We are looking for a seasoned backend engineer to lead platform initiatives.</p></div>",
+    "lists": [],
+    "additional": ""
+  }
+]

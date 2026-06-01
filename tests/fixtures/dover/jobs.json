@@ -1,0 +1,20 @@
+{
+  "results": [
+    {
+      "id": "job_5f3a",
+      "title": "Software Engineering Intern",
+      "locations": [{"name": "Berlin, Berlin, Germany"}],
+      "isRemote": false,
+      "jobPostingUrl": "https://jobs.dover.com/companies/acme/jobs/job_5f3a",
+      "publishedAt": "2026-05-12T09:30:00.000Z"
+    },
+    {
+      "id": "job_9c10",
+      "title": "Senior Backend Engineer",
+      "location": "Remote",
+      "isRemote": true,
+      "jobPostingUrl": "https://jobs.dover.com/companies/acme/jobs/job_9c10",
+      "publishedAt": "2026-04-01T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "9a1f7c20",
+    "name": "Software Engineering Intern",
+    "workLocation": { "label": "Berlin, Berlin, Germany" },
+    "department": { "label": "Engineering" },
+    "url": "https://acme.rippling-ats.com/jobs/9a1f7c20",
+    "isRemote": false,
+    "postedAt": "2026-05-12T09:30:00.000Z"
+  },
+  {
+    "id": "4d8b2e11",
+    "name": "Senior Backend Engineer",
+    "workLocation": { "label": "Remote" },
+    "department": { "label": "Engineering" },
+    "url": "https://acme.rippling-ats.com/jobs/4d8b2e11",
+    "isRemote": true,
+    "postedAt": "2026-04-01T12:00:00.000Z"
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "jobs": [
+    {
+      "id": "job_8f21",
+      "title": "Data Science Intern",
+      "location": "San Francisco, CA, USA",
+      "remote": false,
+      "applyUrl": "https://jobs.gem.com/acme/data-science-intern",
+      "department": "Data"
+    },
+    {
+      "id": "job_4c09",
+      "title": "Staff Software Engineer",
+      "location": "Remote",
+      "remote": true,
+      "applyUrl": "https://jobs.gem.com/acme/staff-software-engineer",
+      "department": "Engineering"
+    }
+  ]
+}
