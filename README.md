@@ -83,7 +83,7 @@ mypy internhunter
 pytest -q
 ```
 
-Conventions: Python 3.12, async, fully typed (mypy strict), pydantic v2, no comments/docstrings in source. Every poller ships with a saved fixture and a test.
+Conventions: Python 3.12+, async, fully typed (mypy strict), pydantic v2, no comments/docstrings in source. Every poller ships with a saved fixture and a test.
 
 ## Contributing
 
