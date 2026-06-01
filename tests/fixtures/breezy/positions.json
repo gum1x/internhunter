@@ -1,0 +1,32 @@
+[
+  {
+    "_id": "f1a2b3c4",
+    "name": "Software Engineering Intern",
+    "type": {"id": "internship", "name": "Internship"},
+    "category": {"id": "eng", "name": "Engineering"},
+    "location": {
+      "name": "Berlin, Germany",
+      "city": "Berlin",
+      "country": {"name": "Germany"},
+      "is_remote": false
+    },
+    "url": "https://acme.breezy.hr/p/f1a2b3c4-software-engineering-intern",
+    "description": "<p>Join our summer internship program and build features in Python.</p>",
+    "published_date": "2026-05-01T09:00:00Z"
+  },
+  {
+    "_id": "d9e8f7g6",
+    "name": "Senior Backend Engineer",
+    "type": {"id": "full-time", "name": "Full-Time"},
+    "category": {"id": "eng", "name": "Engineering"},
+    "location": {
+      "name": "Remote",
+      "city": null,
+      "country": {"name": "United States"},
+      "is_remote": true
+    },
+    "url": "https://acme.breezy.hr/p/d9e8f7g6-senior-backend-engineer",
+    "description": "<p>We are looking for a seasoned backend engineer to lead our team.</p>",
+    "published_date": "2026-04-15T12:00:00Z"
+  }
+]

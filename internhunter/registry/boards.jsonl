@@ -1,0 +1,160 @@
+{"ats": "greenhouse", "token": "stripe", "company": "Stripe", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "airbnb", "company": "Airbnb", "tags": ["marketplace"]}
+{"ats": "greenhouse", "token": "databricks", "company": "Databricks", "tags": ["data", "ai"]}
+{"ats": "greenhouse", "token": "robinhood", "company": "Robinhood", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "instacart", "company": "Instacart", "tags": ["marketplace"]}
+{"ats": "greenhouse", "token": "gitlab", "company": "GitLab", "tags": ["dev-tools"]}
+{"ats": "greenhouse", "token": "discord", "company": "Discord", "tags": ["consumer"]}
+{"ats": "greenhouse", "token": "coinbase", "company": "Coinbase", "tags": ["crypto", "fintech"]}
+{"ats": "greenhouse", "token": "brexhq", "company": "Brex", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "ramp", "company": "Ramp", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "plaid", "company": "Plaid", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "figma", "company": "Figma", "tags": ["design", "dev-tools"]}
+{"ats": "greenhouse", "token": "notion", "company": "Notion", "tags": ["productivity"]}
+{"ats": "greenhouse", "token": "asana", "company": "Asana", "tags": ["productivity"]}
+{"ats": "greenhouse", "token": "cloudflare", "company": "Cloudflare", "tags": ["infra"]}
+{"ats": "greenhouse", "token": "dropbox", "company": "Dropbox", "tags": ["productivity"]}
+{"ats": "greenhouse", "token": "lyft", "company": "Lyft", "tags": ["marketplace"]}
+{"ats": "greenhouse", "token": "doordash", "company": "DoorDash", "tags": ["marketplace"]}
+{"ats": "greenhouse", "token": "samsara", "company": "Samsara", "tags": ["iot"]}
+{"ats": "greenhouse", "token": "benchling", "company": "Benchling", "tags": ["biotech", "dev-tools"]}
+{"ats": "greenhouse", "token": "scaleai", "company": "Scale AI", "tags": ["ai"]}
+{"ats": "greenhouse", "token": "anthropic", "company": "Anthropic", "tags": ["ai"]}
+{"ats": "greenhouse", "token": "affirm", "company": "Affirm", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "twitch", "company": "Twitch", "tags": ["consumer"]}
+{"ats": "greenhouse", "token": "reddit", "company": "Reddit", "tags": ["consumer"]}
+{"ats": "greenhouse", "token": "pinterest", "company": "Pinterest", "tags": ["consumer"]}
+{"ats": "greenhouse", "token": "sofi", "company": "SoFi", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "gusto", "company": "Gusto", "tags": ["fintech", "hr"]}
+{"ats": "greenhouse", "token": "carta", "company": "Carta", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "chime", "company": "Chime", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "wealthfront", "company": "Wealthfront", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "betterment", "company": "Betterment", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "marqeta", "company": "Marqeta", "tags": ["fintech"]}
+{"ats": "greenhouse", "token": "checkr", "company": "Checkr", "tags": ["hr", "saas"]}
+{"ats": "greenhouse", "token": "rippling", "company": "Rippling", "tags": ["hr", "saas"]}
+{"ats": "greenhouse", "token": "deel", "company": "Deel", "tags": ["hr", "saas"]}
+{"ats": "greenhouse", "token": "hashicorp", "company": "HashiCorp", "tags": ["dev-tools", "infra"]}
+{"ats": "greenhouse", "token": "confluent", "company": "Confluent", "tags": ["data", "infra"]}
+{"ats": "greenhouse", "token": "elastic", "company": "Elastic", "tags": ["data", "infra"]}
+{"ats": "greenhouse", "token": "datadog", "company": "Datadog", "tags": ["dev-tools", "infra"]}
+{"ats": "greenhouse", "token": "snyk", "company": "Snyk", "tags": ["security", "dev-tools"]}
+{"ats": "greenhouse", "token": "sentry", "company": "Sentry", "tags": ["dev-tools"]}
+{"ats": "greenhouse", "token": "postman", "company": "Postman", "tags": ["dev-tools"]}
+{"ats": "greenhouse", "token": "circleci", "company": "CircleCI", "tags": ["dev-tools"]}
+{"ats": "greenhouse", "token": "twilio", "company": "Twilio", "tags": ["dev-tools", "infra"]}
+{"ats": "greenhouse", "token": "segment", "company": "Segment", "tags": ["data", "dev-tools"]}
+{"ats": "greenhouse", "token": "amplitude", "company": "Amplitude", "tags": ["data", "analytics"]}
+{"ats": "greenhouse", "token": "mixpanel", "company": "Mixpanel", "tags": ["data", "analytics"]}
+{"ats": "greenhouse", "token": "airtable", "company": "Airtable", "tags": ["productivity", "saas"]}
+{"ats": "greenhouse", "token": "miro", "company": "Miro", "tags": ["productivity", "design"]}
+{"ats": "greenhouse", "token": "calendly", "company": "Calendly", "tags": ["productivity", "saas"]}
+{"ats": "greenhouse", "token": "grammarly", "company": "Grammarly", "tags": ["ai", "productivity"]}
+{"ats": "greenhouse", "token": "duolingo", "company": "Duolingo", "tags": ["edtech", "consumer"]}
+{"ats": "greenhouse", "token": "coursera", "company": "Coursera", "tags": ["edtech"]}
+{"ats": "greenhouse", "token": "udemy", "company": "Udemy", "tags": ["edtech"]}
+{"ats": "greenhouse", "token": "roblox", "company": "Roblox", "tags": ["gaming", "consumer"]}
+{"ats": "greenhouse", "token": "unity", "company": "Unity", "tags": ["gaming", "dev-tools"]}
+{"ats": "greenhouse", "token": "niantic", "company": "Niantic", "tags": ["gaming"]}
+{"ats": "greenhouse", "token": "flexport", "company": "Flexport", "tags": ["logistics"]}
+{"ats": "greenhouse", "token": "convoy", "company": "Convoy", "tags": ["logistics"]}
+{"ats": "greenhouse", "token": "nuro", "company": "Nuro", "tags": ["robotics", "av"]}
+{"ats": "greenhouse", "token": "cruise", "company": "Cruise", "tags": ["av", "robotics"]}
+{"ats": "greenhouse", "token": "zoox", "company": "Zoox", "tags": ["av", "robotics"]}
+{"ats": "greenhouse", "token": "anduril", "company": "Anduril", "tags": ["defense", "hardware"]}
+{"ats": "greenhouse", "token": "shieldai", "company": "Shield AI", "tags": ["defense", "ai"]}
+{"ats": "greenhouse", "token": "applieddintuitive", "company": "Applied Intuition", "tags": ["av", "ai"]}
+{"ats": "greenhouse", "token": "verkada", "company": "Verkada", "tags": ["security", "hardware"]}
+{"ats": "greenhouse", "token": "rivian", "company": "Rivian", "tags": ["hardware", "ev"]}
+{"ats": "greenhouse", "token": "faire", "company": "Faire", "tags": ["marketplace"]}
+{"ats": "greenhouse", "token": "whatnot", "company": "Whatnot", "tags": ["marketplace", "consumer"]}
+{"ats": "greenhouse", "token": "gopuff", "company": "Gopuff", "tags": ["marketplace"]}
+{"ats": "greenhouse", "token": "toast", "company": "Toast", "tags": ["fintech", "saas"]}
+{"ats": "greenhouse", "token": "squarespace", "company": "Squarespace", "tags": ["saas"]}
+{"ats": "greenhouse", "token": "webflow", "company": "Webflow", "tags": ["dev-tools", "saas"]}
+{"ats": "greenhouse", "token": "vimeo", "company": "Vimeo", "tags": ["consumer", "saas"]}
+{"ats": "greenhouse", "token": "patreon", "company": "Patreon", "tags": ["consumer"]}
+{"ats": "greenhouse", "token": "cameo", "company": "Cameo", "tags": ["consumer"]}
+{"ats": "greenhouse", "token": "lattice", "company": "Lattice", "tags": ["hr", "saas"]}
+{"ats": "greenhouse", "token": "vanta", "company": "Vanta", "tags": ["security", "saas"]}
+{"ats": "greenhouse", "token": "drata", "company": "Drata", "tags": ["security", "saas"]}
+{"ats": "greenhouse", "token": "1password", "company": "1Password", "tags": ["security"]}
+{"ats": "greenhouse", "token": "okta", "company": "Okta", "tags": ["security", "saas"]}
+{"ats": "greenhouse", "token": "cribl", "company": "Cribl", "tags": ["data", "infra"]}
+{"ats": "greenhouse", "token": "fivetran", "company": "Fivetran", "tags": ["data"]}
+{"ats": "greenhouse", "token": "dbtlabs", "company": "dbt Labs", "tags": ["data", "dev-tools"]}
+{"ats": "greenhouse", "token": "starburst", "company": "Starburst", "tags": ["data"]}
+{"ats": "greenhouse", "token": "clickhouse", "company": "ClickHouse", "tags": ["data", "infra"]}
+{"ats": "greenhouse", "token": "cockroachlabs", "company": "Cockroach Labs", "tags": ["data", "infra"]}
+{"ats": "greenhouse", "token": "weaveworks", "company": "Weaveworks", "tags": ["infra", "dev-tools"]}
+{"ats": "greenhouse", "token": "temporaltechnologies", "company": "Temporal", "tags": ["dev-tools", "infra"]}
+{"ats": "greenhouse", "token": "airbyte", "company": "Airbyte", "tags": ["data", "dev-tools"]}
+{"ats": "greenhouse", "token": "retool", "company": "Retool", "tags": ["dev-tools"]}
+{"ats": "greenhouse", "token": "modernhealth", "company": "Modern Health", "tags": ["healthtech"]}
+{"ats": "greenhouse", "token": "rocompany", "company": "Ro", "tags": ["healthtech"]}
+{"ats": "greenhouse", "token": "cohere", "company": "Cohere", "tags": ["ai"]}
+{"ats": "lever", "token": "netflix", "company": "Netflix", "tags": ["consumer", "media"]}
+{"ats": "lever", "token": "spotify", "company": "Spotify", "tags": ["consumer", "media"]}
+{"ats": "lever", "token": "plaid", "company": "Plaid", "tags": ["fintech"]}
+{"ats": "lever", "token": "brex", "company": "Brex", "tags": ["fintech"]}
+{"ats": "lever", "token": "ramp", "company": "Ramp", "tags": ["fintech"]}
+{"ats": "lever", "token": "attentive", "company": "Attentive", "tags": ["martech", "saas"]}
+{"ats": "lever", "token": "kraken", "company": "Kraken", "tags": ["crypto", "fintech"]}
+{"ats": "lever", "token": "ripple", "company": "Ripple", "tags": ["crypto", "fintech"]}
+{"ats": "lever", "token": "anchorage", "company": "Anchorage Digital", "tags": ["crypto", "fintech"]}
+{"ats": "lever", "token": "gemini", "company": "Gemini", "tags": ["crypto", "fintech"]}
+{"ats": "lever", "token": "blend", "company": "Blend", "tags": ["fintech"]}
+{"ats": "lever", "token": "upstart", "company": "Upstart", "tags": ["fintech", "ai"]}
+{"ats": "lever", "token": "varomoney", "company": "Varo", "tags": ["fintech"]}
+{"ats": "lever", "token": "mercury", "company": "Mercury", "tags": ["fintech"]}
+{"ats": "lever", "token": "lithic", "company": "Lithic", "tags": ["fintech"]}
+{"ats": "lever", "token": "alloy", "company": "Alloy", "tags": ["fintech"]}
+{"ats": "lever", "token": "veho", "company": "Veho", "tags": ["logistics"]}
+{"ats": "lever", "token": "shippo", "company": "Shippo", "tags": ["logistics", "saas"]}
+{"ats": "lever", "token": "nuvocargo", "company": "Nuvocargo", "tags": ["logistics"]}
+{"ats": "lever", "token": "everlaw", "company": "Everlaw", "tags": ["legaltech", "saas"]}
+{"ats": "lever", "token": "ironclad", "company": "Ironclad", "tags": ["legaltech", "saas"]}
+{"ats": "lever", "token": "clari", "company": "Clari", "tags": ["saas", "sales"]}
+{"ats": "lever", "token": "gong", "company": "Gong", "tags": ["saas", "ai"]}
+{"ats": "lever", "token": "outreach", "company": "Outreach", "tags": ["saas", "sales"]}
+{"ats": "lever", "token": "people-ai", "company": "People.ai", "tags": ["saas", "ai"]}
+{"ats": "lever", "token": "scale", "company": "Scale AI", "tags": ["ai"]}
+{"ats": "lever", "token": "weights-biases", "company": "Weights & Biases", "tags": ["ai", "dev-tools"]}
+{"ats": "lever", "token": "huggingface", "company": "Hugging Face", "tags": ["ai", "dev-tools"]}
+{"ats": "lever", "token": "voltron-data", "company": "Voltron Data", "tags": ["data"]}
+{"ats": "lever", "token": "tecton", "company": "Tecton", "tags": ["data", "ai"]}
+{"ats": "lever", "token": "matillion", "company": "Matillion", "tags": ["data"]}
+{"ats": "lever", "token": "census", "company": "Census", "tags": ["data", "saas"]}
+{"ats": "lever", "token": "hightouch", "company": "Hightouch", "tags": ["data", "saas"]}
+{"ats": "lever", "token": "fountain", "company": "Fountain", "tags": ["hr", "saas"]}
+{"ats": "lever", "token": "handshake", "company": "Handshake", "tags": ["hr", "marketplace"]}
+{"ats": "lever", "token": "guild", "company": "Guild", "tags": ["edtech", "hr"]}
+{"ats": "lever", "token": "nerdwallet", "company": "NerdWallet", "tags": ["fintech", "consumer"]}
+{"ats": "lever", "token": "wise", "company": "Wise", "tags": ["fintech"]}
+{"ats": "lever", "token": "remitly", "company": "Remitly", "tags": ["fintech"]}
+{"ats": "lever", "token": "fastly", "company": "Fastly", "tags": ["infra", "dev-tools"]}
+{"ats": "ashby", "token": "ramp", "company": "Ramp", "tags": ["fintech"]}
+{"ats": "ashby", "token": "openai", "company": "OpenAI", "tags": ["ai"]}
+{"ats": "ashby", "token": "linear", "company": "Linear", "tags": ["dev-tools"]}
+{"ats": "ashby", "token": "vercel", "company": "Vercel", "tags": ["dev-tools", "infra"]}
+{"ats": "ashby", "token": "mistral", "company": "Mistral AI", "tags": ["ai"]}
+{"ats": "ashby", "token": "runway", "company": "Runway", "tags": ["ai", "media"]}
+{"ats": "ashby", "token": "notion", "company": "Notion", "tags": ["productivity"]}
+{"ats": "ashby", "token": "supabase", "company": "Supabase", "tags": ["dev-tools", "infra"]}
+{"ats": "ashby", "token": "replicate", "company": "Replicate", "tags": ["ai", "dev-tools"]}
+{"ats": "ashby", "token": "perplexity", "company": "Perplexity", "tags": ["ai"]}
+{"ats": "ashby", "token": "harvey", "company": "Harvey", "tags": ["ai", "legaltech"]}
+{"ats": "ashby", "token": "cursor", "company": "Cursor", "tags": ["ai", "dev-tools"]}
+{"ats": "ashby", "token": "elevenlabs", "company": "ElevenLabs", "tags": ["ai", "media"]}
+{"ats": "ashby", "token": "deepgram", "company": "Deepgram", "tags": ["ai"]}
+{"ats": "ashby", "token": "modal", "company": "Modal", "tags": ["infra", "dev-tools"]}
+{"ats": "ashby", "token": "baseten", "company": "Baseten", "tags": ["ai", "infra"]}
+{"ats": "ashby", "token": "together", "company": "Together AI", "tags": ["ai", "infra"]}
+{"ats": "ashby", "token": "writer", "company": "Writer", "tags": ["ai"]}
+{"ats": "ashby", "token": "ironcladhq", "company": "Ironclad", "tags": ["legaltech", "saas"]}
+{"ats": "ashby", "token": "clay", "company": "Clay", "tags": ["saas", "ai"]}
+{"ats": "workable", "token": "remote", "company": "Remote", "tags": ["hr", "saas"]}
+{"ats": "workable", "token": "typeform", "company": "Typeform", "tags": ["saas"]}
+{"ats": "smartrecruiters", "token": "Square", "company": "Square", "tags": ["fintech"]}
+{"ats": "smartrecruiters", "token": "Visa", "company": "Visa", "tags": ["fintech"]}
+{"ats": "recruitee", "token": "framer", "company": "Framer", "tags": ["design", "dev-tools"]}

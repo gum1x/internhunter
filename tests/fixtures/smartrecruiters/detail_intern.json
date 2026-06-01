@@ -1,0 +1,24 @@
+{
+  "id": "739ffc33-a17c-4b9b-9b3f-1b3c2c0d9a01",
+  "name": "Software Engineering Intern - Summer 2026",
+  "jobAd": {
+    "sections": {
+      "companyDescription": {
+        "title": "Company Description",
+        "text": "<p>We build developer tools used by millions.</p>"
+      },
+      "jobDescription": {
+        "title": "Job Description",
+        "text": "<p>Join our summer internship program and ship real features.</p>"
+      },
+      "qualifications": {
+        "title": "Qualifications",
+        "text": "<ul><li>Pursuing a Bachelor's degree in Computer Science</li><li>Familiar with Python</li></ul>"
+      },
+      "additionalInformation": {
+        "title": "Additional Information",
+        "text": "<p>This is a paid internship. Applications reviewed on a rolling basis.</p>"
+      }
+    }
+  }
+}

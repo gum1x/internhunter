@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<workzag-jobs>
+  <position>
+    <id>1840271</id>
+    <subcompany></subcompany>
+    <office>Berlin, DE</office>
+    <department>Engineering</department>
+    <recruitingCategory>Software Development</recruitingCategory>
+    <name>Software Engineering Intern</name>
+    <employmentType>intern</employmentType>
+    <seniority>entry-level</seniority>
+    <schedule>full-time</schedule>
+    <yearsOfExperience>none</yearsOfExperience>
+    <keywords>python,summer</keywords>
+    <jobDescriptions>
+      <jobDescription>
+        <name>Summer 2026</name>
+        <value><![CDATA[<p>Join us this <strong>summer</strong> for a paid internship building features in Python and shipping to production.</p>]]></value>
+      </jobDescription>
+      <jobDescription>
+        <name>Requirements</name>
+        <value><![CDATA[<ul><li>Currently pursuing a Bachelor's degree</li><li>Familiarity with Python</li></ul>]]></value>
+      </jobDescription>
+    </jobDescriptions>
+    <createdAt>2026-05-12T09:30:00+02:00</createdAt>
+  </position>
+  <position>
+    <id>1840999</id>
+    <subcompany></subcompany>
+    <office>Remote</office>
+    <department>Engineering</department>
+    <recruitingCategory>Software Development</recruitingCategory>
+    <name>Senior Backend Engineer</name>
+    <employmentType>permanent</employmentType>
+    <seniority>senior</seniority>
+    <schedule>full-time</schedule>
+    <yearsOfExperience>5-10</yearsOfExperience>
+    <keywords>backend,platform</keywords>
+    <jobDescriptions>
+      <jobDescription>
+        <name>About the role</name>
+        <value><![CDATA[<p>We are looking for an experienced backend engineer to lead our platform team.</p>]]></value>
+      </jobDescription>
+    </jobDescriptions>
+    <createdAt>2026-04-01T12:00:00+02:00</createdAt>
+  </position>
+</workzag-jobs>

@@ -1,0 +1,20 @@
+{
+  "id": "84a2b6e1-1c4d-4e2f-8a77-2d9e0f1a2b02",
+  "name": "Senior Backend Engineer",
+  "jobAd": {
+    "sections": {
+      "companyDescription": {
+        "title": "Company Description",
+        "text": "<p>We build developer tools used by millions.</p>"
+      },
+      "jobDescription": {
+        "title": "Job Description",
+        "text": "<p>Own and scale our distributed backend services.</p>"
+      },
+      "qualifications": {
+        "title": "Qualifications",
+        "text": "<ul><li>5+ years of professional backend experience</li><li>Expert in Go or Python</li></ul>"
+      }
+    }
+  }
+}

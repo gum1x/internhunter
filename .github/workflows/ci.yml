@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Ruff
+        run: ruff check internhunter tests
+      - name: Mypy
+        run: mypy internhunter
+      - name: Pytest
+        run: pytest -q
+      - name: Validate registry
+        run: |
+          python -c "
+          from internhunter.registry import load_boards, registry_stats
+          boards = load_boards()
+          keys = [(b.ats, b.token) for b in boards]
+          assert len(keys) == len(set(keys)), 'duplicate (ats, token) in registry'
+          known = {'greenhouse','lever','ashby','workable','smartrecruiters','recruitee','personio','breezy','jazzhr','jobvite','bamboohr','rippling','dover','zohorecruit','workday','icims','ultipro','oracle_cloud','adp','paylocity'}
+          assert all(b.ats in known for b in boards), 'unknown ats in registry'
+          assert registry_stats()['total'] == len(boards)
+          print(f'registry ok: {len(boards)} boards')
+          "

@@ -1,0 +1,28 @@
+{
+  "result": [
+    {
+      "id": 4821,
+      "jobOpeningName": "Software Engineering Intern",
+      "departmentLabel": "Engineering",
+      "employmentStatusLabel": "Internship",
+      "location": {
+        "city": "Berlin",
+        "state": "BE",
+        "postalCode": "10115"
+      },
+      "isRemote": false,
+      "datePosted": "2026-05-01"
+    },
+    {
+      "id": 4822,
+      "jobOpeningName": "Senior Backend Engineer",
+      "departmentLabel": "Engineering",
+      "employmentStatusLabel": "Full-Time",
+      "atsLocation": {
+        "city": "Remote"
+      },
+      "isRemote": true,
+      "datePosted": "2026-04-15"
+    }
+  ]
+}

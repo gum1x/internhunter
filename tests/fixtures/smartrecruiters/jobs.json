@@ -1,0 +1,37 @@
+{
+  "totalFound": 2,
+  "offset": 0,
+  "limit": 100,
+  "content": [
+    {
+      "id": "739ffc33-a17c-4b9b-9b3f-1b3c2c0d9a01",
+      "name": "Software Engineering Intern - Summer 2026",
+      "releasedDate": "2026-05-01T12:00:00.000Z",
+      "location": {
+        "city": "San Francisco",
+        "region": "CA",
+        "country": "us",
+        "remote": false
+      },
+      "department": {"label": "Engineering"},
+      "refNumber": "REQ-1001",
+      "function": {"label": "Engineering"},
+      "typeOfEmployment": {"label": "Intern/Working Student"}
+    },
+    {
+      "id": "84a2b6e1-1c4d-4e2f-8a77-2d9e0f1a2b02",
+      "name": "Senior Backend Engineer",
+      "releasedDate": "2026-04-15T09:30:00.000Z",
+      "location": {
+        "city": "Berlin",
+        "region": "BE",
+        "country": "de",
+        "remote": true
+      },
+      "department": {"label": "Platform"},
+      "refNumber": "REQ-1002",
+      "function": {"label": "Engineering"},
+      "typeOfEmployment": {"label": "Full-time"}
+    }
+  ]
+}

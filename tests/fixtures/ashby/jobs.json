@@ -1,0 +1,40 @@
+{
+  "jobs": [
+    {
+      "id": "5f8a3c21-7b2e-4d9a-9c1f-1a2b3c4d5e6f",
+      "title": "Software Engineering Intern, Summer 2026",
+      "location": "San Francisco, CA",
+      "secondaryLocations": [
+        {"location": "New York, NY"}
+      ],
+      "department": "Engineering",
+      "team": "Platform",
+      "employmentType": "Intern",
+      "isRemote": false,
+      "publishedAt": "2026-05-01T12:30:00.000Z",
+      "jobUrl": "https://jobs.ashbyhq.com/acme/5f8a3c21-7b2e-4d9a-9c1f-1a2b3c4d5e6f",
+      "applyUrl": "https://jobs.ashbyhq.com/acme/5f8a3c21-7b2e-4d9a-9c1f-1a2b3c4d5e6f/application",
+      "descriptionHtml": "<p>Join our team as a <strong>Software Engineering Intern</strong> for Summer 2026. You will build features alongside senior engineers. Applications are reviewed on a rolling basis.</p>",
+      "descriptionPlain": "Join our team as a Software Engineering Intern for Summer 2026. You will build features alongside senior engineers. Applications are reviewed on a rolling basis.",
+      "compensation": {
+        "compensationTierSummary": "$45/hr"
+      }
+    },
+    {
+      "id": "9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d",
+      "title": "Senior Backend Engineer",
+      "location": "Remote - US",
+      "secondaryLocations": [],
+      "departmentName": "Engineering",
+      "employmentType": "FullTime",
+      "isRemote": true,
+      "publishedAt": "2026-04-15T09:00:00.000Z",
+      "jobUrl": "https://jobs.ashbyhq.com/acme/9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d",
+      "descriptionHtml": "<p>We are hiring a Senior Backend Engineer to lead our distributed systems work.</p>",
+      "descriptionPlain": "We are hiring a Senior Backend Engineer to lead our distributed systems work.",
+      "compensation": {
+        "compensationTierSummary": "$180k - $220k"
+      }
+    }
+  ]
+}

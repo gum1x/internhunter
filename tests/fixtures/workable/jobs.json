@@ -1,0 +1,42 @@
+{
+  "name": "Acme Corp",
+  "description": "We build things.",
+  "jobs": [
+    {
+      "title": "Software Engineering Intern - Summer 2026",
+      "shortcode": "ABC123DEF4",
+      "code": null,
+      "url": "https://apply.workable.com/acme/j/ABC123DEF4/",
+      "application_url": "https://apply.workable.com/acme/j/ABC123DEF4/apply/",
+      "location": {
+        "location_str": "San Francisco, California, United States",
+        "country": "United States",
+        "region": "California",
+        "city": "San Francisco",
+        "telecommuting": false
+      },
+      "created_at": "2026-05-01T12:00:00Z",
+      "department": "Engineering",
+      "employment_type": "Internship",
+      "description": ""
+    },
+    {
+      "title": "Senior Backend Engineer",
+      "shortcode": "XYZ789GHI0",
+      "code": null,
+      "url": "https://apply.workable.com/acme/j/XYZ789GHI0/",
+      "application_url": "https://apply.workable.com/acme/j/XYZ789GHI0/apply/",
+      "location": {
+        "location_str": "Remote",
+        "country": "United States",
+        "region": null,
+        "city": null,
+        "telecommuting": true
+      },
+      "created_at": "2026-04-15T09:30:00Z",
+      "department": "Engineering",
+      "employment_type": "Full-time",
+      "description": "<p>We are looking for a senior backend engineer with 8+ years of experience.</p>"
+    }
+  ]
+}
