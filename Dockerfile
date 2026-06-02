@@ -6,7 +6,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential nodejs npm \
     && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g @anthropic-ai/claude-code || true
+RUN npm install -g @anthropic-ai/claude-code@latest || true
 
 COPY pyproject.toml ./
 COPY internhunter ./internhunter
