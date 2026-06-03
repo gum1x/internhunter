@@ -12,3 +12,5 @@ __pycache__/
 dist/
 build/
 internhunter.feed.xml
+*.log
+logs/
