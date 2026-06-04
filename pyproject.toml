@@ -23,6 +23,7 @@ dependencies = [
     "pyyaml",
     "numpy",
     "apscheduler",
+    "aiofiles",
 ]
 
 [project.optional-dependencies]
