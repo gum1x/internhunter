@@ -24,6 +24,7 @@ dependencies = [
     "numpy",
     "apscheduler",
     "aiofiles",
+    "structlog",
 ]
 
 [project.optional-dependencies]
