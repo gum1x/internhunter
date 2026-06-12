@@ -80,6 +80,14 @@ def _cmd_discover(args: argparse.Namespace) -> None:
 
                 ats = [a.strip() for a in args.ats.split(",") if a.strip()] if args.ats else None
                 return await discover_from_urlscan(ctx, ats=ats)
+            if args.method == "yc":
+                from internhunter.discovery.yc import discover_from_yc
+
+                return await discover_from_yc(ctx, limit=args.limit)
+            if args.method == "vc":
+                from internhunter.discovery.vc import discover_from_vc
+
+                return await discover_from_vc(ctx, limit=args.limit)
             from internhunter.discovery.common_crawl import discover_from_common_crawl
 
             ats = [a.strip() for a in args.ats.split(",") if a.strip()] if args.ats else None
@@ -219,12 +227,13 @@ def main() -> None:
     discover = subparsers.add_parser("discover")
     discover.add_argument(
         "--method",
-        choices=["sitemap", "common_crawl", "searxng", "hackernews", "urlscan"],
+        choices=["sitemap", "common_crawl", "searxng", "hackernews", "urlscan", "yc", "vc"],
         required=True,
     )
     discover.add_argument("--url", default=None)
     discover.add_argument("--ats", default=None)
     discover.add_argument("--months", type=int, default=6)
+    discover.add_argument("--limit", type=int, default=400)
 
     subparsers.add_parser("score")
 
