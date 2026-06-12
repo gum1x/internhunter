@@ -75,6 +75,11 @@ def _cmd_discover(args: argparse.Namespace) -> None:
                 from internhunter.discovery.hackernews import discover_from_hackernews
 
                 return await discover_from_hackernews(ctx, months=args.months)
+            if args.method == "urlscan":
+                from internhunter.discovery.urlscan import discover_from_urlscan
+
+                ats = [a.strip() for a in args.ats.split(",") if a.strip()] if args.ats else None
+                return await discover_from_urlscan(ctx, ats=ats)
             from internhunter.discovery.common_crawl import discover_from_common_crawl
 
             ats = [a.strip() for a in args.ats.split(",") if a.strip()] if args.ats else None
@@ -214,7 +219,7 @@ def main() -> None:
     discover = subparsers.add_parser("discover")
     discover.add_argument(
         "--method",
-        choices=["sitemap", "common_crawl", "searxng", "hackernews"],
+        choices=["sitemap", "common_crawl", "searxng", "hackernews", "urlscan"],
         required=True,
     )
     discover.add_argument("--url", default=None)
