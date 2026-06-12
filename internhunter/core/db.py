@@ -176,7 +176,9 @@ def _engine_url(db_path: Path | None) -> str:
 
 def init_db(db_path: Path | None = None) -> None:
     global _engine, _session_factory
-    _engine = create_engine(_engine_url(db_path), future=True)
+    _engine = create_engine(
+        _engine_url(db_path), future=True, connect_args={"timeout": 30}
+    )
     _session_factory = sessionmaker(bind=_engine, expire_on_commit=False)
     Base.metadata.create_all(_engine)
 

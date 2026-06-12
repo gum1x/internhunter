@@ -74,7 +74,7 @@ def _cmd_discover(args: argparse.Namespace) -> None:
             if args.method == "hackernews":
                 from internhunter.discovery.hackernews import discover_from_hackernews
 
-                return await discover_from_hackernews(ctx)
+                return await discover_from_hackernews(ctx, months=args.months)
             from internhunter.discovery.common_crawl import discover_from_common_crawl
 
             ats = [a.strip() for a in args.ats.split(",") if a.strip()] if args.ats else None
@@ -219,6 +219,7 @@ def main() -> None:
     )
     discover.add_argument("--url", default=None)
     discover.add_argument("--ats", default=None)
+    discover.add_argument("--months", type=int, default=6)
 
     subparsers.add_parser("score")
 

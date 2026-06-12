@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import csv
 import io
+import subprocess
+import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, Response
@@ -11,6 +14,41 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import Select, or_, select
 
 from internhunter.core.db import Job, Score, get_session
+
+_search: dict[str, Any] = {"proc": None}
+
+
+def _poll_bin() -> str:
+    return str(Path(sys.executable).parent / "internhunter")
+
+
+def _search_running() -> bool:
+    proc = _search["proc"]
+    return proc is not None and proc.poll() is None
+
+
+def _start_search() -> None:
+    if _search_running():
+        return
+    _search["proc"] = subprocess.Popen(
+        [_poll_bin(), "poll"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def _search_status_html() -> str:
+    if _search_running():
+        return (
+            '<span class="searching" hx-get="/search-status" hx-target="#search-status" '
+            'hx-trigger="load delay:4s" hx-swap="innerHTML">'
+            "⏳ Searching all boards… this can take a few minutes.</span>"
+        )
+    return (
+        '<span class="done" hx-get="/jobs" hx-target="#jobs" hx-trigger="load" '
+        'hx-swap="innerHTML">✓ Search complete — results updated. '
+        '<a href="/">reload page for stats</a></span>'
+    )
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 SORT_COLUMNS = {
@@ -129,6 +167,15 @@ def create_app() -> FastAPI:
                 "sort": sort,
             },
         )
+
+    @app.post("/search", response_class=HTMLResponse)
+    def search() -> HTMLResponse:
+        _start_search()
+        return HTMLResponse(_search_status_html())
+
+    @app.get("/search-status", response_class=HTMLResponse)
+    def search_status() -> HTMLResponse:
+        return HTMLResponse(_search_status_html())
 
     @app.get("/jobs", response_class=HTMLResponse)
     def jobs_fragment(
