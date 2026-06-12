@@ -183,7 +183,7 @@ def create_app() -> FastAPI:
         remote: bool = False,
         sort: str = "posted_at",
     ) -> HTMLResponse:
-        jobs = _fetch_jobs(q, ats, remote, sort)
+        jobs = _fetch_jobs(q, ats, remote, sort, limit=settings.dashboard_limit)
         return templates.TemplateResponse(
             request,
             "index.html",
@@ -215,7 +215,7 @@ def create_app() -> FastAPI:
         remote: bool = False,
         sort: str = "posted_at",
     ) -> HTMLResponse:
-        jobs = _fetch_jobs(q, ats, remote, sort)
+        jobs = _fetch_jobs(q, ats, remote, sort, limit=settings.dashboard_limit)
         return templates.TemplateResponse(
             request,
             "_table.html",
