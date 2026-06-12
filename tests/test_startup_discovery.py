@@ -26,9 +26,15 @@ async def test_discover_from_yc(fake_fetch_context: Any) -> None:
         200,
         text=json.dumps(
             [
-                {"name": "Acme", "website": "https://acme.com"},
-                {"name": "Beta", "website": "https://beta.io"},
-                {"name": "NoSite"},
+                {
+                    "name": "Acme",
+                    "website": "https://acme.com",
+                    "status": "Active",
+                    "isHiring": True,
+                },
+                {"name": "Beta", "website": "https://beta.io", "status": "Active"},
+                {"name": "Dead", "website": "https://dead.io", "status": "Inactive"},
+                {"name": "NoSite", "status": "Active"},
             ]
         ),
     )

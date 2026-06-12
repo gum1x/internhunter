@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 from bs4 import BeautifulSoup
 
 from internhunter.core.fetch import FetchContext
-from internhunter.discovery.careers import resolve_company_ats
+from internhunter.discovery.careers import resolve_company_ats_safe
 from internhunter.discovery.fingerprint import Detection
 
 _VC_PORTFOLIOS = (
@@ -83,7 +83,9 @@ async def discover_from_vc(
         if len(company_urls) >= limit:
             break
 
-    resolved = await asyncio.gather(*(resolve_company_ats(ctx, url) for url in company_urls))
+    resolved = await asyncio.gather(
+        *(resolve_company_ats_safe(ctx, url) for url in company_urls)
+    )
 
     seen: set[tuple[str, str]] = set()
     detections: list[Detection] = []
