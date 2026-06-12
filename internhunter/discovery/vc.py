@@ -36,11 +36,22 @@ _SKIP_HOST_PARTS = (
 )
 
 
-async def _company_links(ctx: FetchContext, portfolio_url: str) -> list[str]:
+async def _portfolio_html(ctx: FetchContext, portfolio_url: str) -> str | None:
+    if ctx.browser is not None:
+        try:
+            return await ctx.browser.render(portfolio_url)
+        except Exception:
+            ctx.logger.debug("vc portfolio render failed {}", portfolio_url)
     try:
-        html = await ctx.get_text(portfolio_url)
+        return await ctx.get_text(portfolio_url)
     except Exception:
         ctx.logger.debug("vc portfolio fetch failed {}", portfolio_url)
+        return None
+
+
+async def _company_links(ctx: FetchContext, portfolio_url: str) -> list[str]:
+    html = await _portfolio_html(ctx, portfolio_url)
+    if html is None:
         return []
     soup = BeautifulSoup(html, "lxml")
     vc_host = urlsplit(portfolio_url).netloc.lower()

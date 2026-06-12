@@ -58,7 +58,12 @@ def _cmd_discover(args: argparse.Namespace) -> None:
     from internhunter.discovery.merge import merge_boards
 
     async def run() -> list[Detection]:
-        async with build_fetch_context() as ctx:
+        from internhunter.config.settings import get_settings
+
+        settings = get_settings()
+        if args.method == "vc" and not settings.enable_browser:
+            settings = settings.model_copy(update={"enable_browser": True})
+        async with build_fetch_context(settings) as ctx:
             if args.method == "sitemap":
                 from internhunter.discovery.sitemap import discover_from_sitemap
 
