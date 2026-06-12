@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 from urllib.parse import urlsplit
 
 from bs4 import BeautifulSoup
 
 from internhunter.core.fetch import FetchContext
-from internhunter.discovery.careers import resolve_company_ats_safe
+from internhunter.discovery.careers import resolve_many
 from internhunter.discovery.fingerprint import Detection
 
 _VC_PORTFOLIOS = (
@@ -83,17 +82,4 @@ async def discover_from_vc(
         if len(company_urls) >= limit:
             break
 
-    resolved = await asyncio.gather(
-        *(resolve_company_ats_safe(ctx, url) for url in company_urls)
-    )
-
-    seen: set[tuple[str, str]] = set()
-    detections: list[Detection] = []
-    for company_detections in resolved:
-        for detection in company_detections:
-            key = (detection.ats, detection.token)
-            if key in seen:
-                continue
-            seen.add(key)
-            detections.append(detection)
-    return detections
+    return await resolve_many(ctx, company_urls)
