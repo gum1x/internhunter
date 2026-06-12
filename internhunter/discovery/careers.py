@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from urllib.parse import urlsplit, urlunsplit
 
 from internhunter.core.fetch import FetchContext
@@ -38,3 +39,12 @@ async def resolve_company_ats(
         if found:
             break
     return found
+
+
+async def resolve_company_ats_safe(
+    ctx: FetchContext, website: str, timeout: float = 25.0
+) -> list[Detection]:
+    try:
+        return await asyncio.wait_for(resolve_company_ats(ctx, website), timeout)
+    except Exception:
+        return []
