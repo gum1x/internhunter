@@ -1,0 +1,133 @@
+from __future__ import annotations
+
+from typing import Any, Protocol, runtime_checkable
+
+from internhunter.config.settings import Settings, get_settings
+
+_USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0.0.0 Safari/537.36"
+)
+_VIEWPORT = {"width": 1280, "height": 800}
+_LAUNCH_ARGS = [
+    "--disable-blink-features=AutomationControlled",
+    "--disable-dev-shm-usage",
+    "--no-sandbox",
+    "--disable-infobars",
+]
+_INIT_SCRIPT = "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
+
+
+@runtime_checkable
+class BrowserFactory(Protocol):
+    async def render(
+        self, url: str, wait_for: str | None = None, timeout: float = 30.0
+    ) -> str: ...
+
+    async def post(
+        self, url: str, payload: dict[str, Any], timeout: float = 30.0
+    ) -> str: ...
+
+    async def aclose(self) -> None: ...
+
+
+class PlaywrightBrowser:
+    def __init__(self, headless: bool = True) -> None:
+        self._headless = headless
+        self._playwright: Any = None
+        self._browser: Any = None
+
+    async def _start(self) -> Any:
+        from playwright.async_api import async_playwright
+
+        return await async_playwright().start()
+
+    async def _ensure(self) -> Any:
+        if self._browser is None:
+            self._playwright = await self._start()
+            self._browser = await self._playwright.chromium.launch(
+                headless=self._headless,
+                args=_LAUNCH_ARGS,
+            )
+        return self._browser
+
+    async def _new_context(self) -> Any:
+        browser = await self._ensure()
+        context = await browser.new_context(
+            user_agent=_USER_AGENT,
+            viewport=_VIEWPORT,
+            locale="en-US",
+        )
+        await context.add_init_script(_INIT_SCRIPT)
+        return context
+
+    async def render(
+        self, url: str, wait_for: str | None = None, timeout: float = 30.0
+    ) -> str:
+        timeout_ms = timeout * 1000.0
+        context = await self._new_context()
+        try:
+            page = await context.new_page()
+            try:
+                await page.goto(
+                    url, timeout=timeout_ms, wait_until="domcontentloaded"
+                )
+                if wait_for:
+                    await page.wait_for_selector(wait_for, timeout=timeout_ms)
+                content: str = await page.content()
+                return content
+            finally:
+                await page.close()
+        finally:
+            await context.close()
+
+    async def post(
+        self, url: str, payload: dict[str, Any], timeout: float = 30.0
+    ) -> str:
+        context = await self._new_context()
+        try:
+            response = await context.request.post(
+                url, data=payload, timeout=timeout * 1000.0
+            )
+            text: str = await response.text()
+            return text
+        finally:
+            await context.close()
+
+    async def aclose(self) -> None:
+        if self._browser is not None:
+            await self._browser.close()
+            self._browser = None
+        if self._playwright is not None:
+            await self._playwright.stop()
+            self._playwright = None
+
+
+class CloakBrowser(PlaywrightBrowser):
+    async def _start(self) -> Any:
+        try:
+            import cloakbrowser
+        except ImportError as exc:
+            raise RuntimeError(
+                "browser_engine='cloak' requires the 'cloakbrowser' package, "
+                "which is not installed. Install it (pip install cloakbrowser) "
+                "or set INTERNHUNTER_BROWSER_ENGINE=playwright."
+            ) from exc
+
+        entrypoint = getattr(cloakbrowser, "async_cloak", None)
+        if entrypoint is None:
+            raise RuntimeError(
+                "The installed 'cloakbrowser' package does not expose the "
+                "expected 'async_cloak' entrypoint. The integration must be "
+                "updated to match the installed cloakbrowser API, or set "
+                "INTERNHUNTER_BROWSER_ENGINE=playwright."
+            )
+        return await entrypoint().start()
+
+
+def get_browser(settings: Settings | None = None) -> BrowserFactory:
+    resolved = settings or get_settings()
+    if resolved.browser_engine == "cloak":
+        return CloakBrowser(headless=resolved.browser_headless)
+    return PlaywrightBrowser(headless=resolved.browser_headless)

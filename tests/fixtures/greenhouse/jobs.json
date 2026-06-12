@@ -1,0 +1,39 @@
+{
+  "jobs": [
+    {
+      "id": 4011223,
+      "title": "Software Engineering Intern, Summer 2026",
+      "updated_at": "2026-05-14T17:32:01-04:00",
+      "absolute_url": "https://boards.greenhouse.io/acmecorp/jobs/4011223",
+      "location": {
+        "name": "San Francisco, CA"
+      },
+      "content": "&lt;p&gt;Join our &lt;strong&gt;Summer 2026 internship&lt;/strong&gt; program.&lt;/p&gt;&lt;p&gt;You will work alongside senior engineers building distributed systems.&lt;/p&gt;&lt;p&gt;Applications are reviewed on a rolling basis.&lt;/p&gt;",
+      "metadata": [],
+      "departments": [
+        {
+          "name": "Engineering"
+        }
+      ]
+    },
+    {
+      "id": 4011300,
+      "title": "Senior Backend Engineer",
+      "updated_at": "2026-05-10T09:00:00-04:00",
+      "absolute_url": "https://boards.greenhouse.io/acmecorp/jobs/4011300",
+      "location": {
+        "name": "Remote"
+      },
+      "content": "&lt;p&gt;We are hiring an experienced backend engineer to lead our platform team.&lt;/p&gt;",
+      "metadata": [],
+      "departments": [
+        {
+          "name": "Engineering"
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "total": 2
+  }
+}

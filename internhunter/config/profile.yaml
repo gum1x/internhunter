@@ -1,0 +1,31 @@
+name: Your Name
+skills:
+  - python
+  - typescript
+  - react
+  - sql
+  - data analysis
+  - machine learning
+interests:
+  - building products
+  - early stage startups
+  - applied ai
+target_sectors:
+  - software
+  - data_ml_ai
+  - startups
+  - venture_capital
+  - finance_fintech
+  - marketing
+  - product
+  - design
+  - general_tech
+locations:
+  - San Francisco, CA
+  - New York, NY
+  - Remote
+remote_ok: true
+graduation_year: 2027
+seeking:
+  - summer internship
+  - co-op

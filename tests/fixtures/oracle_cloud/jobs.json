@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "requisitionList": [
+        {
+          "Id": "REQ12345",
+          "Title": "Software Engineering Intern",
+          "PrimaryLocation": "Austin, TX, US",
+          "PostedDate": "2026-01-15T00:00:00+00:00",
+          "secondaryLocations": []
+        },
+        {
+          "Id": "REQ67890",
+          "Title": "Senior Software Engineer",
+          "PrimaryLocation": "Remote, US",
+          "PostedDate": "2026-01-10T00:00:00+00:00",
+          "secondaryLocations": []
+        }
+      ]
+    }
+  ]
+}

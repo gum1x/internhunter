@@ -1,0 +1,28 @@
+<table>
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Company</th>
+      <th>Location</th>
+      <th>Kind</th>
+      <th>Posted</th>
+      <th>Deadline</th>
+      <th>ATS</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for job in jobs %}
+    <tr>
+      <td><a href="{{ job.canonical_url }}" target="_blank" rel="noopener">{{ job.title }}</a></td>
+      <td>{{ job.company or "" }}</td>
+      <td>{{ job.location_normalized or "" }}</td>
+      <td>{{ job.internship_kind or "" }}</td>
+      <td>{{ job.posted_at.strftime("%Y-%m-%d") if job.posted_at else "" }}</td>
+      <td>{{ job.deadline_at.strftime("%Y-%m-%d") if job.deadline_at else "" }}</td>
+      <td>{{ job.ats }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="empty">No jobs found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
