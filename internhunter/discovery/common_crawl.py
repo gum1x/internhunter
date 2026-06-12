@@ -32,8 +32,8 @@ _COLLINFO_URL = "https://index.commoncrawl.org/collinfo.json"
 _FALLBACK_CRAWL = "CC-MAIN-2024-38"
 
 
-def _cdx_url(crawl: str, pattern: str) -> str:
-    query = urlencode({"url": pattern, "output": "json"})
+def _cdx_url(crawl: str, pattern: str, limit: int = 1000) -> str:
+    query = urlencode({"url": pattern, "output": "json", "limit": limit})
     return f"https://index.commoncrawl.org/{crawl}-index?{query}"
 
 
@@ -48,13 +48,59 @@ async def latest_crawl(ctx: FetchContext) -> str:
     return _FALLBACK_CRAWL
 
 
+async def recent_crawls(ctx: FetchContext, n: int = 5) -> list[str]:
+    try:
+        data = await ctx.get_json(_COLLINFO_URL, respect_robots=False)
+        ids = [
+            entry["id"]
+            for entry in data[:n]
+            if isinstance(entry, dict) and isinstance(entry.get("id"), str)
+        ]
+        if ids:
+            return ids
+    except Exception:
+        ctx.logger.debug("failed to resolve common crawl list")
+    return [_FALLBACK_CRAWL]
+
+
+def _parse_cdx(
+    text: str,
+    limit: int,
+    seen: set[tuple[str, str]],
+    detections: list[Detection],
+) -> None:
+    count = 0
+    for line in text.splitlines():
+        if count >= limit:
+            break
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            record = json.loads(stripped)
+        except json.JSONDecodeError:
+            continue
+        count += 1
+        record_url = record.get("url")
+        if not isinstance(record_url, str):
+            continue
+        detection = detect_from_url(record_url)
+        if detection is None:
+            continue
+        key = (detection.ats, detection.token)
+        if key in seen:
+            continue
+        seen.add(key)
+        detections.append(detection)
+
+
 async def discover_from_common_crawl(
     ctx: FetchContext,
     ats: list[str] | None = None,
     crawl: str | None = None,
     limit_per_ats: int = 1000,
 ) -> list[Detection]:
-    resolved_crawl = crawl if crawl is not None else await latest_crawl(ctx)
+    crawls = [crawl] if crawl is not None else await recent_crawls(ctx)
     requested = ats if ats is not None else list(_ATS_PATTERNS)
 
     seen: set[tuple[str, str]] = set()
@@ -64,35 +110,14 @@ async def discover_from_common_crawl(
         pattern = _ATS_PATTERNS.get(name)
         if pattern is None:
             continue
-        url = _cdx_url(resolved_crawl, pattern)
-        try:
-            text = await ctx.get_text(url, respect_robots=False)
-        except Exception:
-            ctx.logger.debug("common crawl fetch failed for {}", name)
-            continue
-
-        count = 0
-        for line in text.splitlines():
-            if count >= limit_per_ats:
-                break
-            line = line.strip()
-            if not line:
-                continue
+        for crawl_id in crawls:
+            url = _cdx_url(crawl_id, pattern, limit_per_ats)
             try:
-                record = json.loads(line)
-            except json.JSONDecodeError:
+                text = await ctx.get_text(url, respect_robots=False)
+            except Exception:
+                ctx.logger.debug("common crawl fetch failed for {} on {}", name, crawl_id)
                 continue
-            count += 1
-            record_url = record.get("url")
-            if not isinstance(record_url, str):
-                continue
-            detection = detect_from_url(record_url)
-            if detection is None:
-                continue
-            key = (detection.ats, detection.token)
-            if key in seen:
-                continue
-            seen.add(key)
-            detections.append(detection)
+            _parse_cdx(text, limit_per_ats, seen, detections)
+            break
 
     return detections

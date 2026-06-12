@@ -1,31 +1,50 @@
-name: Your Name
+name: Ryan Kosloff
 skills:
   - python
-  - typescript
+  - javascript
   - react
+  - flutter
   - sql
-  - data analysis
-  - machine learning
+  - data-analysis
+  - growth-marketing
+  - automation
+  - social-media
+  - product-thinking
+  - web-scraping
+  - no-code-tools
 interests:
-  - building products
-  - early stage startups
-  - applied ai
+  - applied-ai
+  - prediction-markets
+  - fintech
+  - growth
+  - startups
+  - real-estate
+  - marketing
+  - quant-research
+  - web3
+  - consumer-products
 target_sectors:
   - software
-  - data_ml_ai
+  - data-ml-ai
   - startups
-  - venture_capital
-  - finance_fintech
+  - finance-fintech
   - marketing
+  - real-estate
+  - growth
   - product
-  - design
-  - general_tech
+  - venture-capital
+  - general-tech
 locations:
-  - San Francisco, CA
-  - New York, NY
+  - New York
+  - Washington DC
+  - Seattle
+  - San Francisco
+  - Los Angeles
+  - Chicago
   - Remote
+  - Any
 remote_ok: true
 graduation_year: 2027
 seeking:
   - summer internship
-  - co-op
+  - internship

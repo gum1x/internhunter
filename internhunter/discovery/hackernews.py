@@ -10,12 +10,12 @@ _SEARCH_BASE = "https://hn.algolia.com/api/v1/search_by_date"
 _ITEM_BASE = "https://hn.algolia.com/api/v1/items"
 
 
-def _search_url() -> str:
+def _search_url(hits: int = 1) -> str:
     query = urlencode(
         {
             "query": "Ask HN: Who is hiring",
             "tags": "story,author_whoishiring",
-            "hitsPerPage": "1",
+            "hitsPerPage": str(hits),
         }
     )
     return f"{_SEARCH_BASE}?{query}"
@@ -35,6 +35,25 @@ async def latest_hiring_thread_id(ctx: FetchContext) -> int | None:
         return None
 
 
+async def recent_hiring_thread_ids(ctx: FetchContext, n: int = 6) -> list[int]:
+    try:
+        data = await ctx.get_json(_search_url(max(1, n * 3)), respect_robots=False)
+    except Exception:
+        ctx.logger.debug("failed to resolve recent hn hiring threads")
+        return []
+    ids: list[int] = []
+    for hit in data.get("hits", []) if isinstance(data, dict) else []:
+        if "who is hiring" not in str(hit.get("title", "")).lower():
+            continue
+        try:
+            ids.append(int(hit["objectID"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+        if len(ids) >= n:
+            break
+    return ids
+
+
 def _walk_texts(node: Any, texts: list[str], max_comments: int) -> None:
     stack: list[Any] = [node]
     while stack and len(texts) < max_comments:
@@ -49,22 +68,18 @@ def _walk_texts(node: Any, texts: list[str], max_comments: int) -> None:
             stack.extend(children)
 
 
-async def discover_from_hackernews(
+async def _scan_thread(
     ctx: FetchContext,
-    thread_id: int | None = None,
-    max_comments: int = 1000,
-) -> list[Detection]:
-    resolved = thread_id if thread_id is not None else await latest_hiring_thread_id(ctx)
-    if resolved is None:
-        return []
-
-    seen: set[tuple[str, str]] = set()
-    detections: list[Detection] = []
+    thread_id: int,
+    seen: set[tuple[str, str]],
+    detections: list[Detection],
+    max_comments: int,
+) -> None:
     try:
-        item = await ctx.get_json(_item_url(resolved), respect_robots=False)
+        item = await ctx.get_json(_item_url(thread_id), respect_robots=False)
     except Exception:
-        ctx.logger.debug("failed to fetch hn item {}", resolved)
-        return detections
+        ctx.logger.debug("failed to fetch hn item {}", thread_id)
+        return
 
     texts: list[str] = []
     children = item.get("children") if isinstance(item, dict) else None
@@ -82,4 +97,23 @@ async def discover_from_hackernews(
             seen.add(key)
             detections.append(detection)
 
+
+async def discover_from_hackernews(
+    ctx: FetchContext,
+    thread_id: int | None = None,
+    months: int = 1,
+    max_comments: int = 1000,
+) -> list[Detection]:
+    if thread_id is not None:
+        thread_ids = [thread_id]
+    elif months > 1:
+        thread_ids = await recent_hiring_thread_ids(ctx, months)
+    else:
+        latest = await latest_hiring_thread_id(ctx)
+        thread_ids = [latest] if latest is not None else []
+
+    seen: set[tuple[str, str]] = set()
+    detections: list[Detection] = []
+    for tid in thread_ids:
+        await _scan_thread(ctx, tid, seen, detections, max_comments)
     return detections

@@ -63,6 +63,15 @@
     <div class="stat"><div class="num">{{ stats.remote }}</div><div class="label">Remote</div></div>
   </div>
 
+  <div class="searchbar" style="margin:1rem 0;display:flex;align-items:center;gap:1rem;">
+    <button type="button"
+            style="padding:0.6rem 1.2rem;font-size:1rem;font-weight:600;cursor:pointer;border:0;border-radius:6px;background:#2563eb;color:#fff;"
+            hx-post="/search" hx-target="#search-status" hx-swap="innerHTML">
+      🔍 Search all boards
+    </button>
+    <span id="search-status" style="color:#9aa4b2;"></span>
+  </div>
+
   <form class="filters"
         hx-get="/jobs"
         hx-target="#jobs"

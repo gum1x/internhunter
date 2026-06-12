@@ -121,3 +121,18 @@ def test_deadline_sort_soonest_first(tmp_path: Path) -> None:
     with TestClient(create_app()) as test_client:
         body = test_client.get("/jobs", params={"sort": "deadline_at"}).text
     assert body.index("Soon Intern") < body.index("Far Intern")
+
+
+def test_search_button_endpoints(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    class _FakeProc:
+        def poll(self) -> int:
+            return 0
+
+    monkeypatch.setattr(
+        "internhunter.web.app.subprocess.Popen", lambda *a, **k: _FakeProc()
+    )
+    started = client.post("/search")
+    assert started.status_code == 200
+    assert "Search complete" in started.text or "Searching" in started.text
+    status = client.get("/search-status")
+    assert status.status_code == 200
