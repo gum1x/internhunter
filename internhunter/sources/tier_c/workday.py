@@ -28,9 +28,16 @@ def _parse_token(token: str) -> tuple[str, str]:
     return parts[0], parts[1]
 
 
+_DC_CANDIDATES = ("wd1", "wd5", "wd103", "wd3", "wd12", "wd2", "wd101", "wd10")
+
+
 def _datacenter(ref: BoardRef) -> str:
     extra = ref.extra or {}
     return str(extra.get("dc", "wd1"))
+
+
+def _cxs_url(tenant: str, site: str, dc: str) -> str:
+    return f"https://{tenant}.{dc}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs"
 
 
 @register_source
@@ -41,27 +48,60 @@ class WorkdaySource(Source):
 
     def board_url(self, ref: BoardRef) -> str:
         tenant, site = _parse_token(ref.token)
-        dc = _datacenter(ref)
-        return f"https://{tenant}.{dc}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs"
+        return _cxs_url(tenant, site, _datacenter(ref))
+
+    async def _resolve_dc(
+        self, ctx: FetchContext, tenant: str, site: str, candidates: list[str]
+    ) -> str | None:
+        for dc in candidates:
+            try:
+                payload = await ctx.post_json(
+                    _cxs_url(tenant, site, dc),
+                    json_body={
+                        "appliedFacets": {},
+                        "limit": 1,
+                        "offset": 0,
+                        "searchText": "intern",
+                    },
+                )
+            except Exception:
+                continue
+            if isinstance(payload, dict) and "total" in payload:
+                return dc
+        return None
 
     async def fetch(self, ref: BoardRef, ctx: FetchContext) -> AsyncIterator[RawPosting]:
-        url = self.board_url(ref)
+        try:
+            tenant, site = _parse_token(ref.token)
+        except RuntimeError:
+            ctx.logger.debug("workday bad token {}", ref.token)
+            return
+        extra_dc = (ref.extra or {}).get("dc")
+        candidates = [str(extra_dc)] if extra_dc else list(_DC_CANDIDATES)
+        dc = await self._resolve_dc(ctx, tenant, site, candidates)
+        if dc is None:
+            return
+
+        url = _cxs_url(tenant, site, dc)
         offset = 0
         while True:
-            payload = await ctx.post_json(
-                url,
-                json_body={
-                    "appliedFacets": {},
-                    "limit": _PAGE_SIZE,
-                    "offset": offset,
-                    "searchText": "intern",
-                },
-            )
+            try:
+                payload = await ctx.post_json(
+                    url,
+                    json_body={
+                        "appliedFacets": {},
+                        "limit": _PAGE_SIZE,
+                        "offset": offset,
+                        "searchText": "intern",
+                    },
+                )
+            except Exception:
+                break
             postings = payload.get("jobPostings") or []
             if not postings:
                 break
             for posting in postings:
-                yield RawPosting(raw=posting)
+                yield RawPosting(raw=posting, detail={"dc": dc})
             total = int(payload.get("total", 0))
             offset += _PAGE_SIZE
             if offset >= total:
@@ -70,7 +110,7 @@ class WorkdaySource(Source):
     def normalize(self, raw: RawPosting, ref: BoardRef) -> NormalizedJob:
         posting = raw.raw
         tenant, site = _parse_token(ref.token)
-        dc = _datacenter(ref)
+        dc = str((raw.detail or {}).get("dc") or _datacenter(ref))
 
         title = str(posting.get("title", "")).strip()
         external_path = str(posting.get("externalPath", ""))

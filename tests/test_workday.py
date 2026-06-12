@@ -51,3 +51,16 @@ async def test_workday_poll_yields_normalized_jobs(fake_fetch_context: Any) -> N
     assert senior.is_internship is False
     assert senior.internship_kind is None
     assert senior.is_remote is True
+
+
+@pytest.mark.asyncio
+async def test_workday_probes_datacenter_when_dc_unknown(fake_fetch_context: Any) -> None:
+    source = WorkdaySource()
+    ref = BoardRef(ats="workday", token="acme/Careers")
+    wd5_url = "https://acme.wd5.myworkdayjobs.com/wday/cxs/acme/Careers/jobs"
+    fake_fetch_context.responses[wd5_url] = httpx.Response(200, json=_load_fixture())
+
+    jobs = await source.poll(ref, fake_fetch_context)
+
+    assert len(jobs) == 2
+    assert jobs[0].canonical_url.startswith("https://acme.wd5.myworkdayjobs.com/Careers")
