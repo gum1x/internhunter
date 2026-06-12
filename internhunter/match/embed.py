@@ -18,7 +18,10 @@ class SentenceTransformerEncoder:
     def __init__(self, model_name: str | None = None) -> None:
         from sentence_transformers import SentenceTransformer
 
-        self._model = SentenceTransformer(model_name or get_settings().embed_model)
+        settings = get_settings()
+        self._model = SentenceTransformer(
+            model_name or settings.embed_model, device=settings.embed_device
+        )
 
     def encode(self, texts: list[str]) -> NDArray[np.float32]:
         vectors = self._model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
