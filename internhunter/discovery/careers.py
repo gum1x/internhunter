@@ -48,3 +48,29 @@ async def resolve_company_ats_safe(
         return await asyncio.wait_for(resolve_company_ats(ctx, website), timeout)
     except Exception:
         return []
+
+
+async def resolve_many(
+    ctx: FetchContext,
+    websites: list[str],
+    concurrency: int = 24,
+    timeout: float = 25.0,
+) -> list[Detection]:
+    sem = asyncio.Semaphore(concurrency)
+
+    async def _run(site: str) -> list[Detection]:
+        async with sem:
+            return await resolve_company_ats_safe(ctx, site, timeout)
+
+    results = await asyncio.gather(*(_run(site) for site in websites))
+
+    seen: set[tuple[str, str]] = set()
+    detections: list[Detection] = []
+    for company_detections in results:
+        for detection in company_detections:
+            key = (detection.ats, detection.token)
+            if key in seen:
+                continue
+            seen.add(key)
+            detections.append(detection)
+    return detections
