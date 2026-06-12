@@ -10,7 +10,38 @@ from internhunter.discovery.hackernews import (
     _search_url,
     discover_from_hackernews,
     latest_hiring_thread_id,
+    recent_hiring_thread_ids,
 )
+
+
+async def test_discover_multiple_months(fake_fetch_context: Any) -> None:
+    ctx = fake_fetch_context
+    ctx.responses[_search_url(9)] = httpx.Response(
+        200,
+        text=json.dumps(
+            {
+                "hits": [
+                    {"objectID": "100", "title": "Ask HN: Who is hiring? (June 2026)"},
+                    {"objectID": "101", "title": "Ask HN: Who wants to be hired? (June 2026)"},
+                    {"objectID": "102", "title": "Ask HN: Who is hiring? (May 2026)"},
+                ]
+            }
+        ),
+    )
+    ctx.responses[_item_url(100)] = httpx.Response(
+        200, text=json.dumps({"children": [{"text": "https://jobs.lever.co/aco", "children": []}]})
+    )
+    ctx.responses[_item_url(102)] = httpx.Response(
+        200,
+        text=json.dumps(
+            {"children": [{"text": "https://jobs.ashbyhq.com/bco", "children": []}]}
+        ),
+    )
+    assert await recent_hiring_thread_ids(ctx, 3) == [100, 102]
+    dets = await discover_from_hackernews(ctx, months=3)
+    keys = {(d.ats, d.token) for d in dets}
+    assert ("lever", "aco") in keys
+    assert ("ashby", "bco") in keys
 
 
 async def test_latest_hiring_thread_id(fake_fetch_context: Any) -> None:
