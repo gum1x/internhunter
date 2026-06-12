@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     notify_min_fit: float = 0.6
     auth_user: str = ""
     auth_pass: str = ""
+    dashboard_limit: int = 2000
     discord_webhook_url: str = ""
     ntfy_topic_url: str = ""
     feed_path: Path = Path("internhunter.feed.xml")
