@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     cache_dir: Path = Path(".cache")
     retry_max_attempts: int = 4
     embed_model: str = "all-MiniLM-L6-v2"
+    embed_device: str = "cpu"
     profile_path: Path = Path("internhunter/config/profile.yaml")
     browser_engine: str = "playwright"
     browser_headless: bool = True
@@ -29,6 +30,8 @@ class Settings(BaseSettings):
     llm_backend: str = "auto"
     llm_max_tokens: int = 1024
     notify_min_fit: float = 0.6
+    auth_user: str = ""
+    auth_pass: str = ""
     discord_webhook_url: str = ""
     ntfy_topic_url: str = ""
     feed_path: Path = Path("internhunter.feed.xml")
