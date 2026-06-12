@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import csv
 import io
+import secrets
 import subprocess
 import sys
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +16,19 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import Select, or_, select
 
+from internhunter.config.settings import get_settings
 from internhunter.core.db import Job, Score, get_session
+
+
+def _check_basic_auth(header: str, user: str, password: str) -> bool:
+    if not header.lower().startswith("basic "):
+        return False
+    try:
+        decoded = base64.b64decode(header[6:]).decode("utf-8")
+    except (binascii.Error, UnicodeDecodeError):
+        return False
+    name, _, supplied = decoded.partition(":")
+    return secrets.compare_digest(name, user) and secrets.compare_digest(supplied, password)
 
 _search: dict[str, Any] = {"proc": None}
 
@@ -144,6 +159,21 @@ def _stats(jobs: Sequence[Job]) -> dict[str, int]:
 def create_app() -> FastAPI:
     app = FastAPI()
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+    settings = get_settings()
+
+    if settings.auth_user and settings.auth_pass:
+
+        @app.middleware("http")
+        async def _auth(
+            request: Request, call_next: Callable[[Request], Awaitable[Response]]
+        ) -> Response:
+            header = request.headers.get("authorization", "")
+            if not _check_basic_auth(header, settings.auth_user, settings.auth_pass):
+                return Response(
+                    status_code=401,
+                    headers={"WWW-Authenticate": 'Basic realm="InternHunter"'},
+                )
+            return await call_next(request)
 
     @app.get("/", response_class=HTMLResponse)
     def index(

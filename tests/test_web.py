@@ -136,3 +136,17 @@ def test_search_button_endpoints(client: TestClient, monkeypatch: pytest.MonkeyP
     assert "Search complete" in started.text or "Searching" in started.text
     status = client.get("/search-status")
     assert status.status_code == 200
+
+
+def test_dashboard_basic_auth(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import base64
+
+    init_db(db_path=tmp_path / "auth.db")
+    monkeypatch.setenv("INTERNHUNTER_AUTH_USER", "testuser")
+    monkeypatch.setenv("INTERNHUNTER_AUTH_PASS", "testpass")
+    with TestClient(create_app()) as c:
+        assert c.get("/").status_code == 401
+        good = base64.b64encode(b"testuser:testpass").decode()
+        assert c.get("/", headers={"Authorization": f"Basic {good}"}).status_code == 200
+        bad = base64.b64encode(b"testuser:nope").decode()
+        assert c.get("/", headers={"Authorization": f"Basic {bad}"}).status_code == 401
