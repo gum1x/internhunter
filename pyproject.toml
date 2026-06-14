@@ -10,7 +10,7 @@ dependencies = [
     "httpx",
     "pydantic>=2",
     "pydantic-settings",
-    "sqlalchemy>=2",
+    "sqlalchemy>=2.0.50",
     "fastapi",
     "uvicorn[standard]",
     "jinja2",
