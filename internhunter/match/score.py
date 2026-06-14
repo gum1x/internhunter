@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from internhunter.config.settings import Settings, get_settings
 from internhunter.core.db import Board, Job, Score
 from internhunter.match.embed import EmbeddingCache, Encoder, cosine_matrix, embed_texts
-from internhunter.match.prefilter import load_profile_text
+from internhunter.match.prefilter import load_candidate_profile
 from internhunter.match.rarity import discovery_score, freshness_score, rarity_score
 
 
@@ -49,7 +49,7 @@ def score_jobs(
     profile = (
         profile_text
         if profile_text is not None
-        else load_profile_text(resolved.profile_path)
+        else load_candidate_profile(resolved)
     )
     moment = now or datetime.now(UTC)
     jobs = list(session.scalars(select(Job)))
@@ -67,7 +67,7 @@ def score_jobs(
     input_hash = hashlib.sha1(profile.encode()).hexdigest()
     model_name = f"prefilter:{resolved.embed_model}"
 
-    for job, raw_fit in zip(jobs, sims, strict=True):
+    for i, (job, raw_fit) in enumerate(zip(jobs, sims, strict=True)):
         fit = max(0.0, min(1.0, float(raw_fit)))
         posted = _aware(job.posted_at) or _aware(job.first_seen_at)
         fresh = freshness_score(posted, moment)
@@ -77,6 +77,10 @@ def score_jobs(
         job.rarity_score = rar
         job.discovery_score = discovery_score(fit, fresh, rar)
         _upsert_score(session, job.job_uid, fit, model_name, input_hash)
+        # Commit in chunks so this whole-corpus re-rank doesn't hold the write lock for
+        # its entire run (which would stall the dashboard's tracker writes).
+        if (i + 1) % 2000 == 0:
+            session.commit()
 
     session.commit()
     return len(jobs)

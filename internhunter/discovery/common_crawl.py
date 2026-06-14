@@ -8,6 +8,7 @@ from internhunter.discovery.fingerprint import Detection, detect_from_url
 
 _ATS_PATTERNS: dict[str, str] = {
     "greenhouse": "boards.greenhouse.io/*",
+    "greenhouse_jobboards": "job-boards.greenhouse.io/*",
     "lever": "jobs.lever.co/*",
     "ashby": "jobs.ashbyhq.com/*",
     "smartrecruiters": "jobs.smartrecruiters.com/*",
@@ -32,8 +33,11 @@ _COLLINFO_URL = "https://index.commoncrawl.org/collinfo.json"
 _FALLBACK_CRAWL = "CC-MAIN-2024-38"
 
 
-def _cdx_url(crawl: str, pattern: str, limit: int = 1000) -> str:
-    query = urlencode({"url": pattern, "output": "json", "limit": limit})
+def _cdx_url(crawl: str, pattern: str, limit: int = 1000, page: int = 0) -> str:
+    params: dict[str, object] = {"url": pattern, "output": "json", "limit": limit}
+    if page:
+        params["page"] = page
+    query = urlencode(params)
     return f"https://index.commoncrawl.org/{crawl}-index?{query}"
 
 
@@ -99,6 +103,7 @@ async def discover_from_common_crawl(
     ats: list[str] | None = None,
     crawl: str | None = None,
     limit_per_ats: int = 1000,
+    max_pages: int = 3,
 ) -> list[Detection]:
     crawls = [crawl] if crawl is not None else await recent_crawls(ctx)
     requested = ats if ats is not None else list(_ATS_PATTERNS)
@@ -111,13 +116,24 @@ async def discover_from_common_crawl(
         if pattern is None:
             continue
         for crawl_id in crawls:
-            url = _cdx_url(crawl_id, pattern, limit_per_ats)
-            try:
-                text = await ctx.get_text(url, respect_robots=False)
-            except Exception:
-                ctx.logger.debug("common crawl fetch failed for {} on {}", name, crawl_id)
-                continue
-            _parse_cdx(text, limit_per_ats, seen, detections)
-            break
+            got_any = False
+            for page in range(max_pages):
+                url = _cdx_url(crawl_id, pattern, limit_per_ats, page=page)
+                try:
+                    text = await ctx.get_text(url, respect_robots=False)
+                except Exception:
+                    ctx.logger.debug(
+                        "common crawl fetch failed for {} on {} p{}", name, crawl_id, page
+                    )
+                    break
+                if not text.strip():
+                    break  # past the last page
+                before = len(detections)
+                _parse_cdx(text, limit_per_ats, seen, detections)
+                got_any = True
+                if len(detections) == before and page > 0:
+                    break  # page yielded nothing new
+            if got_any:
+                break
 
     return detections

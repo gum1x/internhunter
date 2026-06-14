@@ -11,7 +11,8 @@ from internhunter.core.db import Job, Score
 from internhunter.llm.client import LlmCache
 from internhunter.llm.score import build_prompt, llm_score_jobs, parse_score
 
-_REPLY = '{"fit": 88, "matched": ["python"], "missing": ["go"], "rationale": "Strong fit."}'
+# prestige 100, fit 81 -> value = round(sqrt(100*81)) = 90
+_REPLY = '{"prestige": 100, "fit": 81, "reason": "Strong fit."}'
 
 
 class FakeBackend:
@@ -60,9 +61,9 @@ def test_llm_score_jobs_persists_scores(db_session: Session, tmp_path: Path) -> 
     assert len(rows) == 2
     for row in rows:
         assert row.model is not None and row.model.startswith("llm:")
-        assert row.fit_score == 88
-        assert row.matched == ["python"]
-        assert row.missing == ["go"]
+        assert row.fit_score == 90
+        assert row.matched == ["prestige 100/100", "fit 81/100"]
+        assert row.missing == []
         assert row.rationale == "Strong fit."
 
 
@@ -91,7 +92,7 @@ def test_llm_score_jobs_isolates_failing_job(db_session: Session, tmp_path: Path
 
     rows = list(db_session.scalars(select(Score)))
     assert len(rows) == 1
-    assert rows[0].fit_score == 88
+    assert rows[0].fit_score == 90
 
 
 def test_llm_score_jobs_uses_cache(db_session: Session, tmp_path: Path) -> None:
@@ -130,11 +131,11 @@ def test_build_prompt_contains_title(db_session: Session) -> None:
 
 
 def test_parse_score_clamps_and_defaults() -> None:
-    high = parse_score('{"fit": 150, "matched": ["x"]}')
+    high = parse_score('{"prestige": 150, "fit": 150}')  # both clamp to 100 -> value 100
     assert high["fit"] == 100
-    assert high["matched"] == ["x"]
+    assert high["matched"] == ["prestige 100/100", "fit 100/100"]
     assert high["missing"] == []
     assert high["rationale"] == ""
 
-    low = parse_score('{"fit": -5}')
+    low = parse_score('{"prestige": -5, "fit": -5}')  # clamp to 0 -> value 0
     assert low["fit"] == 0

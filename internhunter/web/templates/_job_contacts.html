@@ -1,0 +1,18 @@
+<div class="job-contacts">
+  {% for c in contacts %}
+  <div class="job-contact">
+    <strong>{{ c.full_name or c.title or "—" }}</strong>
+    {% if c.role_category %}<span class="role">{{ c.role_category }}</span>{% endif %}
+    {% if c.email %}<span class="email">{{ c.email }}</span>{% endif %}
+    {% if c.confidence is not none %}
+    <span class="badge badge-{{ c.label }}">{{ c.label }} {{ "%.0f"|format(c.confidence) }}</span>
+    {% endif %}
+    {% if c.linkedin_url %}<a href="{{ c.linkedin_url }}" target="_blank" rel="noopener">in</a>{% endif %}
+    {% for ch in channels.get(c.id, []) %}
+    <a class="chip badge-{{ ch.label }}" href="{{ ch.value if ch.value.startswith('http') else '#' }}" target="_blank" rel="noopener">{{ ch.kind }}</a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">No contacts yet for this company.</div>
+  {% endfor %}
+</div>

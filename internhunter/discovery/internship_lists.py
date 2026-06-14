@@ -23,7 +23,25 @@ from internhunter.sources.base import BoardRef
 _LISTS = (
     "https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/dev/.github/scripts/listings.json",
     "https://raw.githubusercontent.com/vanshb03/Summer2026-Internships/dev/.github/scripts/listings.json",
+    "https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/dev/.github/scripts/listings.json",
+    "https://raw.githubusercontent.com/vanshb03/New-Grad-Positions/dev/.github/scripts/listings.json",
+    "https://raw.githubusercontent.com/cvrve/Summer2026-Internships/dev/.github/scripts/listings.json",
+    "https://raw.githubusercontent.com/cvrve/New-Grad-2025/dev/.github/scripts/listings.json",
 )
+
+# Alternate key names seen across the various community list repos (all SimplifyJobs-shaped,
+# but a few diverge). Field extraction falls through these so new repos yield without code.
+_URL_KEYS = ("url", "absolute_url", "application_link", "apply_link", "link")
+_TITLE_KEYS = ("title", "role", "position")
+_COMPANY_KEYS = ("company_name", "company", "organization", "employer")
+
+
+def _first(entry: dict[str, Any], keys: tuple[str, ...]) -> str | None:
+    for key in keys:
+        value = entry.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
 
 
 async def fetch_list_entries(
@@ -56,12 +74,12 @@ def _location_raw(entry: dict[str, Any]) -> str | None:
 
 
 def entry_to_job(entry: dict[str, Any]) -> NormalizedJob | None:
-    apply_url = str(entry.get("url") or "").strip()
-    title = str(entry.get("title") or "").strip()
+    apply_url = _first(entry, _URL_KEYS)
+    title = _first(entry, _TITLE_KEYS)
     if not apply_url or not title:
         return None
 
-    company = str(entry.get("company_name") or "").strip() or None
+    company = _first(entry, _COMPANY_KEYS)
     detection = detect_from_url(apply_url)
     ats = detection.ats if detection is not None else "listing"
     token = detection.token if detection is not None else normalize_company_slug(company or "")
@@ -104,15 +122,15 @@ def board_refs(entries: list[dict[str, Any]]) -> list[BoardRef]:
     seen: set[tuple[str, str]] = set()
     refs: list[BoardRef] = []
     for entry in entries:
-        detection = detect_from_url(str(entry.get("url") or ""))
+        detection = detect_from_url(_first(entry, _URL_KEYS) or "")
         if detection is None:
             continue
         key = (detection.ats, detection.token)
         if key in seen:
             continue
         seen.add(key)
-        company = entry.get("company_name")
-        refs.append(detection_to_board_ref(detection, str(company) if company else None))
+        company = _first(entry, _COMPANY_KEYS)
+        refs.append(detection_to_board_ref(detection, company))
     return refs
 
 
