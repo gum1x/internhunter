@@ -80,6 +80,30 @@ def _cmd_discover(args: argparse.Namespace) -> None:
                 from internhunter.discovery.hackernews import discover_from_hackernews
 
                 return await discover_from_hackernews(ctx, months=args.months)
+            if args.method == "crtsh":
+                from internhunter.discovery.crt_sh import discover_from_crtsh
+
+                if not args.url:
+                    raise SystemExit("--url (company domain) is required for --method crtsh")
+                return await discover_from_crtsh(ctx, args.url)
+            if args.method == "jsonld":
+                from internhunter.discovery.jsonld import discover_from_jsonld
+
+                if not args.url:
+                    raise SystemExit("--url (careers page) is required for --method jsonld")
+                return await discover_from_jsonld(ctx, args.url)
+            if args.method == "wayback":
+                from internhunter.discovery.wayback import discover_from_wayback
+
+                return await discover_from_wayback(ctx)
+            if args.method == "similar":
+                from internhunter.discovery.similar import discover_similar_companies
+
+                return await discover_similar_companies(ctx, settings)
+            if args.method == "edgar":
+                from internhunter.discovery.edgar import discover_from_edgar
+
+                return await discover_from_edgar(ctx, settings)
             if args.method == "urlscan":
                 from internhunter.discovery.urlscan import discover_from_urlscan
 
@@ -107,6 +131,29 @@ def _cmd_discover(args: argparse.Namespace) -> None:
     )
     for ref in result.new_refs:
         print(f"  + {ref.ats}/{ref.token}")
+
+
+def _cmd_discover_all(args: argparse.Namespace) -> None:
+    from internhunter.core.runner import run_discovery
+
+    summary = run_discovery()
+    print(
+        f"discovery: {summary.boards_new} new boards, "
+        f"{summary.boards_seen} already known, {summary.jobs_ingested} jobs ingested"
+    )
+    for method, count in summary.per_method.items():
+        print(f"  {method:18} {count}")
+    for error in summary.errors[:10]:
+        print(f"  ! {error}")
+
+
+def _cmd_reresolve(args: argparse.Namespace) -> None:
+    import asyncio
+
+    from internhunter.discovery.reresolve import reresolve_listings
+
+    examined, new_boards = asyncio.run(reresolve_listings(limit=args.limit or 200))
+    print(f"reresolved {examined} listing jobs: {new_boards} new boards")
 
 
 def _cmd_score(args: argparse.Namespace) -> None:
@@ -143,6 +190,52 @@ def _cmd_score_llm(args: argparse.Namespace) -> None:
     finally:
         session.close()
     print(f"llm-scored {scored} jobs")
+
+
+def _cmd_score_quality(args: argparse.Namespace) -> None:
+    from internhunter.config.settings import get_settings
+    from internhunter.core.db import get_session, init_db
+    from internhunter.llm.client import LlmCache, get_backend
+    from internhunter.llm.quality import judge_quality_jobs
+
+    settings = get_settings()
+    init_db()
+    session = get_session()
+    try:
+        judged = judge_quality_jobs(
+            session,
+            get_backend(settings),
+            settings=settings,
+            top_k=args.top_k,
+            cache=LlmCache(settings.cache_dir),
+        )
+    finally:
+        session.close()
+    print(f"quality-judged {judged} borderline jobs")
+
+
+def _cmd_find_contacts(args: argparse.Namespace) -> None:
+    from internhunter.config.settings import get_settings
+    from internhunter.contacts.runner import run_find_contacts
+    from internhunter.contacts.selfcheck import format_status
+
+    settings = get_settings()
+    if args.methods:
+        settings = settings.model_copy(update={"contacts_methods": args.methods})
+    if args.verify:
+        settings = settings.model_copy(update={"verify_emails": True})
+    print(format_status(settings))
+    summary = run_find_contacts(
+        limit=args.limit, only_slug=args.company, settings=settings
+    )
+    print(
+        f"enriched {summary.companies} companies: "
+        f"{summary.people_found} contacts "
+        f"({summary.emails_found} with email), "
+        f"{summary.contacts_inserted} new, {summary.contacts_updated} updated"
+    )
+    for error in summary.errors[:10]:
+        print(f"  ! {error}")
 
 
 def _cmd_notify(args: argparse.Namespace) -> None:
@@ -197,6 +290,32 @@ def _cmd_schedule(args: argparse.Namespace) -> None:
         scheduler.shutdown()
 
 
+def _cmd_ingest(args: argparse.Namespace) -> None:
+    import asyncio
+
+    total_entries = total_jobs = total_boards = 0
+    if args.source in ("github", "all"):
+        from internhunter.discovery.internship_lists import ingest_internship_lists
+
+        entries, jobs, boards = asyncio.run(ingest_internship_lists())
+        print(f"  github lists: {entries} entries -> {jobs} jobs, {boards} new boards")
+        total_entries += entries
+        total_jobs += jobs
+        total_boards += boards
+    if args.source in ("apis", "all"):
+        from internhunter.discovery.job_apis import ingest_job_apis
+
+        entries, jobs, boards = asyncio.run(ingest_job_apis())
+        print(f"  job apis: {entries} entries -> {jobs} jobs, {boards} new boards")
+        total_entries += entries
+        total_jobs += jobs
+        total_boards += boards
+    print(
+        f"ingested {total_entries} entries -> "
+        f"{total_jobs} jobs upserted, {total_boards} new boards added"
+    )
+
+
 def _cmd_registry(args: argparse.Namespace) -> None:
     from internhunter.registry import registry_stats
 
@@ -226,13 +345,19 @@ def main() -> None:
     registry = subparsers.add_parser("registry")
     registry.add_argument("action", choices=["stats"])
 
+    ingest = subparsers.add_parser("ingest")
+    ingest.add_argument("--source", choices=["github", "apis", "all"], default="all")
+
     detect = subparsers.add_parser("detect")
     detect.add_argument("url")
 
     discover = subparsers.add_parser("discover")
     discover.add_argument(
         "--method",
-        choices=["sitemap", "common_crawl", "searxng", "hackernews", "urlscan", "yc", "vc"],
+        choices=[
+            "sitemap", "common_crawl", "searxng", "hackernews", "urlscan",
+            "yc", "vc", "crtsh", "jsonld", "wayback", "similar", "edgar",
+        ],
         required=True,
     )
     discover.add_argument("--url", default=None)
@@ -240,10 +365,25 @@ def main() -> None:
     discover.add_argument("--months", type=int, default=6)
     discover.add_argument("--limit", type=int, default=400)
 
+    subparsers.add_parser("discover-all")
+    reresolve = subparsers.add_parser("reresolve")
+    reresolve.add_argument("--limit", type=int, default=200)
+
     subparsers.add_parser("score")
 
     score_llm = subparsers.add_parser("score-llm")
     score_llm.add_argument("--top-k", type=int, default=20)
+
+    score_quality = subparsers.add_parser("score-quality")
+    score_quality.add_argument("--top-k", type=int, default=None)
+
+    find_contacts = subparsers.add_parser("find-contacts")
+    find_contacts.add_argument("--limit", type=int, default=50)
+    find_contacts.add_argument("--company", default=None, help="single company_slug")
+    find_contacts.add_argument(
+        "--methods", default=None, help="comma list: searxng,github,team,staffspy"
+    )
+    find_contacts.add_argument("--verify", action="store_true", help="run holehe verification")
 
     notify = subparsers.add_parser("notify")
     notify.add_argument("--channel", choices=["discord", "ntfy", "feed", "all"], default="all")
@@ -266,17 +406,32 @@ def main() -> None:
     if args.command == "registry":
         _cmd_registry(args)
         return
+    if args.command == "ingest":
+        _cmd_ingest(args)
+        return
     if args.command == "detect":
         _cmd_detect(args)
         return
     if args.command == "discover":
         _cmd_discover(args)
         return
+    if args.command == "discover-all":
+        _cmd_discover_all(args)
+        return
+    if args.command == "reresolve":
+        _cmd_reresolve(args)
+        return
     if args.command == "score":
         _cmd_score(args)
         return
     if args.command == "score-llm":
         _cmd_score_llm(args)
+        return
+    if args.command == "score-quality":
+        _cmd_score_quality(args)
+        return
+    if args.command == "find-contacts":
+        _cmd_find_contacts(args)
         return
     if args.command == "notify":
         _cmd_notify(args)

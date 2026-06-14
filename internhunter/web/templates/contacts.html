@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InternHunter — Contacts</title>
+  <script src="https://unpkg.com/htmx.org@2"></script>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0; padding: 2rem; background: #14161a; color: #e6e6e6;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px;
+    }
+    h1 { margin: 0 0 1rem; font-size: 1.4rem; }
+    form.filters { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+    input, select {
+      background: #1e2127; color: #e6e6e6; border: 1px solid #2c3038; border-radius: 4px;
+      padding: 0.5rem; font-family: inherit; font-size: 13px;
+    }
+    label { display: flex; align-items: center; gap: 0.35rem; }
+    a { color: #6db3f2; }
+    .csv-link {
+      margin-left: auto; background: #2b5cff; color: #fff; text-decoration: none;
+      padding: 0.5rem 0.9rem; border-radius: 4px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid #262a31; }
+    th { color: #9aa0aa; font-weight: 600; position: sticky; top: 0; background: #14161a; }
+    tbody tr:hover { background: #1b1e24; }
+    .empty { color: #6c7280; text-align: center; }
+    .badge { padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; }
+    .chip { display: inline-block; padding: 0.1rem 0.45rem; margin: 0.1rem; border-radius: 10px; font-size: 0.72rem; text-decoration: none; background: #2c3038; color: #cdd2db; }
+    .badge-verified { background: #1f5c3a; color: #9ff0c0; }
+    .badge-probable { background: #5c521f; color: #f0e29f; }
+    .badge-guessed { background: #3a3f48; color: #b8bdc7; }
+    .badge-invalid { background: #5c2b2b; color: #f0a9a9; }
+    code { background: #1e2127; padding: 0.1rem 0.3rem; border-radius: 3px; }
+    nav { margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <nav><a href="/">← Jobs</a> · <a href="/tracker">Tracker →</a></nav>
+  <h1>Contacts</h1>
+
+  <form class="filters"
+        hx-get="/contacts/table"
+        hx-target="#contacts"
+        hx-trigger="keyup changed delay:300ms from:input, change">
+    <input type="search" name="company" value="{{ company }}" placeholder="Filter by company">
+    <select name="role">
+      <option value="">All roles</option>
+      {% for option in role_options %}
+      <option value="{{ option }}" {% if option == role %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+    <select name="label">
+      <option value="">All confidence</option>
+      <option value="verified" {% if label == "verified" %}selected{% endif %}>verified</option>
+      <option value="probable" {% if label == "probable" %}selected{% endif %}>probable</option>
+      <option value="guessed" {% if label == "guessed" %}selected{% endif %}>guessed</option>
+    </select>
+    <label><input type="checkbox" name="has_email" value="true" {% if has_email %}checked{% endif %}> Has email</label>
+    <a class="csv-link" href="/contacts/export.csv?{{ {'company': company, 'role': role, 'label': label, 'has_email': 'true' if has_email else ''}|urlencode }}">Download CSV</a>
+  </form>
+
+  <div id="contacts">
+    {% include "_contacts_table.html" %}
+  </div>
+</body>
+</html>

@@ -1,6 +1,7 @@
 <table>
   <thead>
     <tr>
+      <th>Fit</th>
       <th>Title</th>
       <th>Company</th>
       <th>Location</th>
@@ -8,11 +9,20 @@
       <th>Posted</th>
       <th>Deadline</th>
       <th>ATS</th>
+      <th>Quality</th>
+      <th>Contacts</th>
+      <th>Track</th>
     </tr>
   </thead>
   <tbody>
     {% for job in jobs %}
+    {% set s = scores.get(job.job_uid) %}
     <tr>
+      <td>
+        {% if s and s.fit_score is not none %}
+        <span class="fit fit-{{ (s.fit_score // 25)|int }}" title="{{ s.rationale or '' }}{% if s.matched %} | matches: {{ s.matched|join(', ') }}{% endif %}{% if s.missing %} | gaps: {{ s.missing|join(', ') }}{% endif %}">{{ "%.0f"|format(s.fit_score) }}</span>
+        {% endif %}
+      </td>
       <td><a href="{{ job.canonical_url }}" target="_blank" rel="noopener">{{ job.title }}</a></td>
       <td>{{ job.company or "" }}</td>
       <td>{{ job.location_normalized or "" }}</td>
@@ -20,9 +30,45 @@
       <td>{{ job.posted_at.strftime("%Y-%m-%d") if job.posted_at else "" }}</td>
       <td>{{ job.deadline_at.strftime("%Y-%m-%d") if job.deadline_at else "" }}</td>
       <td>{{ job.ats }}</td>
+      <td>
+        {% if job.quality_verdict %}
+        <span class="badge badge-q-{{ job.quality_verdict }}" title="{{ job.quality_flags|join(', ') }}">{{ job.quality_verdict }}</span>
+        {% elif job.quality_flags %}
+        <span class="badge badge-guessed" title="{{ job.quality_flags|join(', ') }}">⚑ {{ job.quality_flags|length }}</span>
+        {% endif %}
+      </td>
+      <td>
+        <button class="expand-btn"
+                hx-get="/jobs/{{ job.job_uid }}/contacts"
+                hx-target="#jc-{{ loop.index }}"
+                hx-swap="innerHTML">show</button>
+        <div id="jc-{{ loop.index }}"></div>
+      </td>
+      <td>
+        {% if job.job_uid in tracked %}
+        <span class="tracked">✓ Tracked</span>
+        {% else %}
+        <button type="button" class="expand-btn"
+                hx-post="/jobs/{{ job.job_uid }}/track"
+                hx-target="this"
+                hx-swap="outerHTML"
+                hx-disabled-elt="this">+ Track</button>
+        {% endif %}
+      </td>
     </tr>
     {% else %}
-    <tr><td colspan="7" class="empty">No jobs found.</td></tr>
+    <tr><td colspan="11" class="empty">No jobs found.</td></tr>
     {% endfor %}
   </tbody>
 </table>
+
+{% set base = {'q': q, 'ats': ats, 'remote': 'true' if remote else '', 'hide_low_quality': 'true' if hide_low_quality else '', 'sort': sort} %}
+<div class="pager" style="display:flex;gap:0.75rem;align-items:center;justify-content:center;margin:1rem 0;">
+  {% if page > 1 %}
+  <button class="expand-btn" hx-get="/jobs?{{ (base.items()|list + [('page', page - 1)])|urlencode }}" hx-target="#jobs" hx-swap="innerHTML">← Prev</button>
+  {% endif %}
+  <span style="color:#9aa0aa;">Page {{ page }} of {{ pages }} · {{ total }} internships</span>
+  {% if page < pages %}
+  <button class="expand-btn" hx-get="/jobs?{{ (base.items()|list + [('page', page + 1)])|urlencode }}" hx-target="#jobs" hx-swap="innerHTML">Next →</button>
+  {% endif %}
+</div>

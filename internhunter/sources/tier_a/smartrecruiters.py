@@ -127,6 +127,13 @@ class SmartRecruitersSource(Source):
 
         now = datetime.now(UTC)
 
+        # Persist the detail `creator` (recruiter name) instead of dropping it — the
+        # contacts pipeline mines it. Merge into the stored raw (no schema change).
+        stored_raw = dict(posting)
+        creator = detail.get("creator")
+        if creator:
+            stored_raw["creator"] = creator
+
         return NormalizedJob(
             job_uid=job_uid,
             ats=self.ats,
@@ -158,5 +165,5 @@ class SmartRecruitersSource(Source):
             sectors=sectors,
             first_seen_at=now,
             last_seen_at=now,
-            raw=posting,
+            raw=stored_raw,
         )

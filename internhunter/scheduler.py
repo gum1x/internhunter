@@ -3,10 +3,11 @@ from __future__ import annotations
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from internhunter.config.settings import Settings
-from internhunter.core.runner import run_poll
+from internhunter.config.settings import Settings, get_settings
+from internhunter.core.runner import run_discovery, run_poll, run_score, run_score_llm
 
 _TIER_INTERVALS_MIN: dict[str, int] = {"A": 30, "B": 120, "C": 360}
+_CONTACTS_INTERVAL_MIN = 720  # enrich freshly-discovered companies twice a day
 
 _TIER_A = {
     "greenhouse",
@@ -61,6 +62,38 @@ def build_scheduler(settings: Settings | None = None) -> BackgroundScheduler:
             trigger=IntervalTrigger(minutes=minutes),
             kwargs={"ats": members[tier], "settings": settings},
             id=f"poll-tier-{tier}",
+        )
+
+    from internhunter.contacts.runner import run_find_contacts
+
+    scheduler.add_job(
+        run_find_contacts,
+        trigger=IntervalTrigger(minutes=_CONTACTS_INTERVAL_MIN),
+        kwargs={"settings": settings},
+        id="find-contacts",
+    )
+
+    resolved = settings or get_settings()
+    if resolved.enable_scheduled_discovery:
+        scheduler.add_job(
+            run_discovery,
+            trigger=IntervalTrigger(minutes=resolved.discovery_interval_min),
+            kwargs={"settings": settings},
+            id="discover-all",
+        )
+    if resolved.enable_scheduled_rating:
+        scheduler.add_job(
+            run_score,
+            trigger=IntervalTrigger(minutes=resolved.rating_interval_min),
+            kwargs={"settings": settings},
+            id="score",
+        )
+    if resolved.enable_scheduled_llm_rating:
+        scheduler.add_job(
+            run_score_llm,
+            trigger=IntervalTrigger(minutes=resolved.rating_interval_min),
+            kwargs={"settings": settings},
+            id="score-llm",
         )
     return scheduler
 

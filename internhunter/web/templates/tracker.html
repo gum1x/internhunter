@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InternHunter — Tracker</title>
+  <script src="https://unpkg.com/htmx.org@2"></script>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0; padding: 2rem; background: #14161a; color: #e6e6e6;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px;
+    }
+    h1 { margin: 0 0 1rem; font-size: 1.4rem; }
+    form.filters { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+    input, select {
+      background: #1e2127; color: #e6e6e6; border: 1px solid #2c3038; border-radius: 4px;
+      padding: 0.4rem; font-family: inherit; font-size: 13px;
+    }
+    label { display: flex; align-items: center; gap: 0.35rem; }
+    a { color: #6db3f2; }
+    .csv-link {
+      margin-left: auto; background: #2b5cff; color: #fff; text-decoration: none;
+      padding: 0.5rem 0.9rem; border-radius: 4px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid #262a31; vertical-align: top; }
+    th { color: #9aa0aa; font-weight: 600; position: sticky; top: 0; background: #14161a; }
+    th a { color: #9aa0aa; text-decoration: none; }
+    th a:hover { color: #e6e6e6; }
+    tbody tr:hover { background: #1b1e24; }
+    .empty { color: #6c7280; text-align: center; }
+    nav { margin-bottom: 1rem; }
+    .expand-btn { cursor: pointer; background: #2c3038; color: #e6e6e6; border: 0; border-radius: 4px; padding: 0.25rem 0.5rem; }
+    /* status colors */
+    select.st-toapply { background: #33415c; color: #bcd0ff; }
+    select.st-applied { background: #1f5c3a; color: #9ff0c0; }
+    select.st-interviewing { background: #5c521f; color: #f0e29f; }
+    select.st-offer { background: #14563f; color: #7ef0c6; font-weight: 600; }
+    select.st-rejected { background: #5c2b2b; color: #f0a9a9; }
+    /* emailed */
+    select.em-yes { color: #7ec699; border-color: #2f6b48; }
+    select.em-no { color: #8a8f99; }
+    /* due-date urgency */
+    td.due-overdue input { color: #f0a9a9; border-color: #7a3b3b; font-weight: 600; }
+    td.due-soon input { color: #f0e29f; border-color: #7a6f3b; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <nav><a href="/">← Jobs</a> · <a href="/contacts">Contacts →</a></nav>
+  <h1>Application Tracker</h1>
+
+  <form class="filters" method="get" action="/tracker">
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <select name="status" onchange="this.form.submit()">
+      <option value="">All statuses</option>
+      {% for s in statuses %}
+      <option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <span style="color:#9aa0aa;">{{ count }} tracked · sorted by {{ sort }}</span>
+    <a class="csv-link" href="/tracker/export.csv?{{ {'status': status, 'sort': sort}|urlencode }}">Download CSV</a>
+  </form>
+
+  <div id="tracker">
+    {% include "_tracker_table.html" %}
+  </div>
+</body>
+</html>

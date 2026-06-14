@@ -68,6 +68,20 @@ def load_profile_text(path: pathlib.Path | None = None) -> str:
     return ". ".join(part for part in parts if part)
 
 
+def load_candidate_profile(settings: Any = None) -> str:
+    """Full candidate profile for the LLM rater: the YAML keywords PLUS the résumé text
+    (resume.md/.txt/.pdf) when present, so ratings reflect your actual experience."""
+    from internhunter.config.settings import get_settings
+    from internhunter.resume.load import load_resume_text
+
+    resolved = settings or get_settings()
+    profile = load_profile_text(resolved.profile_path)
+    resume = load_resume_text(resolved.resume_path)
+    if resume:
+        return f"{profile}\n\n--- RÉSUMÉ ---\n{resume}"
+    return profile
+
+
 def job_text(job: NormalizedJob) -> str:
     return f"{job.title}. {job.description_text}".strip()
 

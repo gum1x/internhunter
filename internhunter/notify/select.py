@@ -4,11 +4,24 @@ from datetime import UTC, datetime, timedelta
 
 from internhunter.core.db import Job
 
+# Verdicts the LLM judge assigns to clear slop. We don't PAGE about these (they stay in
+# the dashboard — never deleted), only suppress them from push notifications.
+_BAD_VERDICTS = {"spam", "ghost", "agency", "mlm"}
+_BAD_CONFIDENCE = 70.0
+
 
 def _aware(value: datetime | None) -> datetime | None:
     if value is None:
         return None
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def _is_clear_slop(job: Job) -> bool:
+    return (
+        job.quality_verdict in _BAD_VERDICTS
+        and job.quality_confidence is not None
+        and job.quality_confidence >= _BAD_CONFIDENCE
+    )
 
 
 def select_notifiable(
@@ -27,6 +40,8 @@ def select_notifiable(
     for job in jobs:
         ident = job.job_uid or str(id(job))
         if ident in seen:
+            continue
+        if _is_clear_slop(job):
             continue
         high_fit = job.discovery_score is not None and job.discovery_score >= min_fit
         deadline = _aware(job.deadline_at)
