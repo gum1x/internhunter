@@ -6,13 +6,35 @@ from urllib.parse import urlencode
 from internhunter.core.fetch import FetchContext
 from internhunter.discovery.fingerprint import Detection, detect_from_url
 
-_DEFAULT_QUERIES: list[str] = [
-    "site:boards.greenhouse.io intern",
-    "site:jobs.lever.co intern",
-    "site:jobs.ashbyhq.com intern",
-    "site:applytojob.com intern",
-    "site:breezy.hr intern",
+# Public posting hosts per supported ATS — every one the engine can already poll, so a
+# board found here is immediately useful. Generated dorks cover all of them (vs the old
+# 5), each OR-combined across niche keywords to keep the query count low.
+_ATS_HOSTS: list[str] = [
+    "boards.greenhouse.io",
+    "job-boards.greenhouse.io",
+    "jobs.lever.co",
+    "jobs.ashbyhq.com",
+    "jobs.smartrecruiters.com",
+    "apply.workable.com",
+    "recruitee.com",
+    "jobs.personio.com",
+    "breezy.hr",
+    "applytojob.com",
+    "bamboohr.com",
+    "jobs.jobvite.com",
+    "zohorecruit.com",
+    "jobs.dover.com",
+    "rippling-ats.com",
+    "myworkdayjobs.com",
+    "careers.icims.com",
+    "recruiting.ultipro.com",
+    "jobs.adp.com",
+    "recruiting.paylocity.com",
 ]
+
+_KEYWORDS = '(intern OR "co-op" OR "summer 2026" OR "early career" OR apprentice OR "new grad")'
+
+_DEFAULT_QUERIES: list[str] = [f"site:{host} {_KEYWORDS}" for host in _ATS_HOSTS]
 
 
 def _search_url(base_url: str, query: str) -> str:

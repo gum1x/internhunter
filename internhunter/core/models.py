@@ -86,4 +86,11 @@ class NormalizedJob(BaseModel):
     discovery_score: float | None = None
     embedding_id: int | None = None
 
+    quality_score: float | None = None
+    quality_verdict: str | None = None
+    quality_flags: list[str] = Field(default_factory=list)
+    quality_confidence: float | None = None
+    quality_model: str | None = None
+    quality_checked_at: datetime | None = None
+
     raw: dict[str, Any] = Field(default_factory=dict)

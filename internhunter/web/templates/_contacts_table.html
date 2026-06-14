@@ -1,0 +1,42 @@
+<table>
+  <thead>
+    <tr>
+      <th>Company</th>
+      <th>Name</th>
+      <th>Title</th>
+      <th>Role</th>
+      <th>Email</th>
+      <th>Confidence</th>
+      <th>Identity</th>
+      <th>Reach channels</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in contacts %}
+    <tr>
+      <td>{{ c.company_slug }}</td>
+      <td>{{ c.full_name or "" }}</td>
+      <td>{{ c.title or "" }}</td>
+      <td>{{ c.role_category or "" }}</td>
+      <td>{{ c.email or "" }}</td>
+      <td>
+        {% if c.confidence is not none %}
+        <span class="badge badge-{{ c.label }}">{{ c.label }} {{ "%.0f"|format(c.confidence) }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% set ic = (c.evidence or {}).get("identity_confidence") %}
+        {% if ic and ic >= 70 %}<span title="confirmed on multiple platforms">✓ {{ "%.0f"|format(ic) }}</span>{% elif ic %}{{ "%.0f"|format(ic) }}{% endif %}
+      </td>
+      <td>
+        {% if c.linkedin_url %}<a class="chip" href="{{ c.linkedin_url }}" target="_blank" rel="noopener">linkedin</a>{% endif %}
+        {% for ch in channels.get(c.id, []) %}
+        <a class="chip badge-{{ ch.label }}" href="{{ ch.value if ch.value.startswith('http') else '#' }}" target="_blank" rel="noopener" title="{{ ch.source }} · {{ '%.0f'|format(ch.confidence) if ch.confidence is not none else '' }}">{{ ch.kind }}</a>
+        {% endfor %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8" class="empty">No contacts found. Run <code>internhunter find-contacts</code>.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

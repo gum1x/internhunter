@@ -18,13 +18,20 @@ class LlmBackend(Protocol):
 
 
 class CliBackend:
-    def __init__(self, timeout: float = 120.0) -> None:
+    def __init__(
+        self, timeout: float = 120.0, claude_bin: str = "claude", model: str | None = None
+    ) -> None:
         self.timeout = timeout
+        self.claude_bin = claude_bin
+        self.model = model
 
     def generate(self, prompt: str, system: str | None = None, max_tokens: int = 1024) -> str:
         full = f"{system}\n\n{prompt}" if system else prompt
+        args = [self.claude_bin, "-p", full, "--output-format", "json"]
+        if self.model:
+            args += ["--model", self.model]
         proc = subprocess.run(
-            ["claude", "-p", full, "--output-format", "json"],
+            args,
             capture_output=True,
             text=True,
             timeout=self.timeout,
@@ -60,12 +67,40 @@ class ApiBackend:
         return "".join(block.text for block in response.content if block.type == "text")
 
 
+class LocalBackend:
+    """OpenAI-compatible chat endpoint (e.g. a llama.cpp server)."""
+
+    def __init__(self, base_url: str, model: str, timeout: float = 120.0) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+        self.timeout = timeout
+
+    def generate(self, prompt: str, system: str | None = None, max_tokens: int = 1024) -> str:
+        import httpx
+
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        resp = httpx.post(
+            f"{self.base_url}/v1/chat/completions",
+            json={"model": self.model, "messages": messages, "max_tokens": max_tokens},
+            timeout=self.timeout,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return str(data["choices"][0]["message"]["content"])
+
+
 def get_backend(settings: Settings | None = None) -> LlmBackend:
     resolved = settings or get_settings()
     choice = resolved.llm_backend
+    if choice == "local" or (choice == "auto" and resolved.llm_base_url):
+        if resolved.llm_base_url:
+            return LocalBackend(resolved.llm_base_url, resolved.llm_model)
     if choice == "api" or (choice == "auto" and os.environ.get("ANTHROPIC_API_KEY")):
         return ApiBackend(resolved.llm_model)
-    return CliBackend()
+    return CliBackend(claude_bin=resolved.claude_bin, model=resolved.llm_model)
 
 
 class LlmCache:

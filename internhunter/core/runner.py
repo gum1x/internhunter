@@ -168,3 +168,115 @@ def run_poll(
     if limit is not None:
         refs = refs[:limit]
     return asyncio.run(poll_boards(refs, settings=settings))
+
+
+@dataclass
+class DiscoverySummary:
+    boards_new: int = 0
+    boards_seen: int = 0
+    jobs_ingested: int = 0
+    per_method: dict[str, int] = field(default_factory=dict)
+    errors: list[str] = field(default_factory=list)
+
+
+async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
+    """Run the cheap discovery channels in one pass and grow the board registry.
+
+    This is what the scheduler runs daily so the registry stops being starved between
+    manual CLI runs. Each channel fails soft and is reported in ``per_method``.
+    """
+    from internhunter.discovery.common_crawl import discover_from_common_crawl
+    from internhunter.discovery.edgar import discover_from_edgar
+    from internhunter.discovery.fingerprint import detection_to_board_ref
+    from internhunter.discovery.hackernews import discover_from_hackernews
+    from internhunter.discovery.internship_lists import ingest_internship_lists
+    from internhunter.discovery.job_apis import ingest_job_apis
+    from internhunter.discovery.merge import merge_boards
+    from internhunter.discovery.similar import discover_similar_companies
+    from internhunter.discovery.urlscan import discover_from_urlscan
+    from internhunter.discovery.wayback import discover_from_wayback
+
+    resolved = settings or get_settings()
+    init_db(resolved.db_path)
+    summary = DiscoverySummary()
+
+    async with build_fetch_context(resolved) as ctx:
+        detection_channels = {
+            "common_crawl": discover_from_common_crawl(ctx),
+            "urlscan": discover_from_urlscan(ctx),
+            "hackernews": discover_from_hackernews(ctx),
+            "wayback": discover_from_wayback(ctx),
+            "similar": discover_similar_companies(ctx, resolved),
+            "edgar": discover_from_edgar(ctx, resolved),
+        }
+        results = await asyncio.gather(
+            *detection_channels.values(), return_exceptions=True
+        )
+
+    all_refs: list[BoardRef] = []
+    for name, result in zip(detection_channels, results, strict=True):
+        if isinstance(result, BaseException):
+            summary.errors.append(f"{name}: {result}")
+            summary.per_method[name] = 0
+            continue
+        refs = [detection_to_board_ref(d) for d in result]
+        summary.per_method[name] = len(refs)
+        all_refs.extend(refs)
+
+    merged = merge_boards(all_refs)
+    summary.boards_new += merged.new_boards
+    summary.boards_seen += merged.existing
+
+    # List + API ingestors manage their own context and upsert jobs directly.
+    for name, coro in (
+        ("internship_lists", ingest_internship_lists(resolved)),
+        ("job_apis", ingest_job_apis(resolved)),
+    ):
+        try:
+            _entries, jobs, new_boards = await coro
+            summary.per_method[name] = new_boards
+            summary.boards_new += new_boards
+            summary.jobs_ingested += jobs
+        except Exception as exc:
+            summary.errors.append(f"{name}: {exc}")
+            summary.per_method[name] = 0
+
+    return summary
+
+
+def run_discovery(settings: Settings | None = None) -> DiscoverySummary:
+    """Sync wrapper for the CLI and APScheduler."""
+    return asyncio.run(discover_all(settings=settings))
+
+
+def run_score(settings: Settings | None = None) -> int:
+    """Embedding fit re-rank of ALL jobs against the (résumé-enhanced) profile. Cheap."""
+    from internhunter.match.embed import default_encoder
+    from internhunter.match.score import score_jobs
+
+    resolved = settings or get_settings()
+    init_db(resolved.db_path)
+    session = get_session()
+    try:
+        return score_jobs(session, default_encoder(), settings=resolved)
+    finally:
+        session.close()
+
+
+def run_score_llm(settings: Settings | None = None, top_k: int | None = None) -> int:
+    """LLM deep-read of the next batch of unrated internships (skip-aware, so successive
+    runs progress through the corpus across Claude usage-limit windows)."""
+    from internhunter.llm.client import LlmCache, get_backend
+    from internhunter.llm.score import llm_score_jobs
+
+    resolved = settings or get_settings()
+    init_db(resolved.db_path)
+    session = get_session()
+    try:
+        return llm_score_jobs(
+            session, get_backend(resolved), settings=resolved,
+            top_k=top_k if top_k is not None else resolved.llm_rating_top_k,
+            cache=LlmCache(resolved.cache_dir),
+        )
+    finally:
+        session.close()

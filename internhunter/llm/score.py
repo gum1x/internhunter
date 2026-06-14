@@ -10,9 +10,11 @@ from sqlalchemy.orm import Session
 from internhunter.config.settings import Settings, get_settings
 from internhunter.core.db import Job, Score
 from internhunter.llm.client import LlmBackend, LlmCache, complete, extract_json
-from internhunter.match.prefilter import load_profile_text
+from internhunter.match.prefilter import load_candidate_profile
 
 _DESC_LIMIT = 4000
+# Bump when the scoring criteria/prompt change, to force a re-score of older ratings.
+_SCORE_VERSION = "v2-prestige"
 
 
 def _job_text(job: Job) -> str:
@@ -23,37 +25,44 @@ def build_prompt(profile_text: str, job: Job) -> str:
     description = job.description_text[:_DESC_LIMIT]
     location = job.location_normalized or job.location_raw or "Unknown"
     return (
-        "Candidate profile:\n"
-        f"{profile_text}\n\n"
-        "Job posting:\n"
+        "Rate this internship for the candidate. Be fast and decisive.\n\n"
+        "Score TWO things, each 0-100:\n"
+        "1. prestige — how hard is this internship to GET: how famous, large, selective, "
+        "or sought-after is the company? (100 = top-tier like OpenAI / Google / Jane Street "
+        "/ top YC startups; 60-85 = well-known/strong; 30-55 = ordinary; 0-25 = tiny/unknown).\n"
+        "2. fit — how well the candidate's background matches THIS specific role "
+        "(100 = ideal match, 0 = no match).\n\n"
+        f"Candidate:\n{profile_text}\n\n"
+        "Internship:\n"
         f"Title: {job.title}\n"
         f"Company: {job.company or 'Unknown'}\n"
         f"Location: {location}\n"
         f"Description:\n{description}\n\n"
-        "Return ONLY a JSON object with this exact shape:\n"
-        '{"fit": <int 0-100>, "matched": [<requirement strings the candidate meets>], '
-        '"missing": [<requirements not met>], "rationale": "<1-2 sentence rationale>"}'
+        'Return ONLY JSON: {"prestige": <int 0-100>, "fit": <int 0-100>, '
+        '"reason": "<one short sentence>"}'
     )
 
 
-def _as_str_list(value: Any) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    return [str(item) for item in value]
+def _clamp_int(value: Any) -> int:
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return max(0, min(100, n))
 
 
 def parse_score(text: str) -> dict[str, Any]:
+    """Value = geometric mean of prestige & fit, so BOTH must be high to rank high
+    (a prestigious role you don't match, or a great match at an unknown shop, both fall)."""
     data = extract_json(text)
-    try:
-        fit = int(data.get("fit", 0))
-    except (TypeError, ValueError):
-        fit = 0
-    fit = max(0, min(100, fit))
+    prestige = _clamp_int(data.get("prestige"))
+    fit = _clamp_int(data.get("fit"))
+    value = round((prestige * fit) ** 0.5)
     return {
-        "fit": fit,
-        "matched": _as_str_list(data.get("matched")),
-        "missing": _as_str_list(data.get("missing")),
-        "rationale": str(data.get("rationale", "")),
+        "fit": value,
+        "matched": [f"prestige {prestige}/100", f"fit {fit}/100"],
+        "missing": [],
+        "rationale": str(data.get("reason") or data.get("rationale") or ""),
     }
 
 
@@ -105,17 +114,21 @@ def llm_score_jobs(
     profile = (
         profile_text
         if profile_text is not None
-        else load_profile_text(resolved.profile_path)
+        else load_candidate_profile(resolved)
     )
+    # Versioned model tag: bumping it forces a re-score of everything rated under the old
+    # criteria. Skip only jobs already rated under THIS exact tag, so repeated runs (e.g.
+    # across Claude usage-limit windows) progress through new jobs instead of re-rating.
+    model = f"llm:{resolved.llm_model}:{_SCORE_VERSION}"
+    already = select(Score.job_uid).where(Score.model == model)
     jobs = list(
         session.scalars(
             select(Job)
-            .where(Job.is_internship.is_(True))
+            .where(Job.is_internship.is_(True), Job.job_uid.not_in(already))
             .order_by(Job.discovery_score.desc().nulls_last())
             .limit(top_k)
         )
     )
-    model = f"llm:{resolved.llm_model}"
     scored = 0
     for job in jobs:
         try:
@@ -127,5 +140,10 @@ def llm_score_jobs(
             logger.warning("llm score failed for {}: {}", job.job_uid, exc)
             continue
         scored += 1
+        # Commit after EACH job: the dashboard updates live, an aborted run keeps its
+        # progress (skip-aware query resumes), and — critically — the DB write lock is
+        # released between the slow LLM calls so the dashboard's tracker writes aren't
+        # blocked. Holding one transaction across many calls would stall the UI.
+        session.commit()
     session.commit()
     return scored
