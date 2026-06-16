@@ -1,0 +1,62 @@
+{
+  "data": [
+    {
+      "id": "118475",
+      "title": "Software Engineering Intern",
+      "url": "https://acme.pinpointhq.com/en/postings/25efc989-4fb4-4f3c-8b7c-d55ef484f54d",
+      "path": "/en/postings/25efc989-4fb4-4f3c-8b7c-d55ef484f54d",
+      "description": "<div><!--block-->Join our engineering team this <strong>summer</strong> as a paid intern. You will build features in Python and ship to production.</div>",
+      "employment_type": "internship",
+      "employment_type_text": "Internship",
+      "location": {
+        "id": "5495",
+        "city": "Berlin",
+        "name": "Berlin",
+        "postal_code": null,
+        "province": "Berlin"
+      },
+      "workplace_type": "on_site",
+      "workplace_type_text": "On site",
+      "deadline_at": null,
+      "compensation": null,
+      "job": {
+        "id": "471845",
+        "requisition_id": "PIN-0100",
+        "department": {
+          "id": "191",
+          "name": "Engineering"
+        },
+        "division": null
+      }
+    },
+    {
+      "id": "118999",
+      "title": "Senior Backend Engineer",
+      "url": "https://acme.pinpointhq.com/en/postings/9a1b2c3d-4e5f-6789-abcd-ef0123456789",
+      "path": "/en/postings/9a1b2c3d-4e5f-6789-abcd-ef0123456789",
+      "description": "<div><!--block-->We are looking for an experienced backend engineer to lead our platform team.</div>",
+      "employment_type": "full_time",
+      "employment_type_text": "Full Time",
+      "location": {
+        "id": "283",
+        "city": null,
+        "name": "Remote",
+        "postal_code": null,
+        "province": null
+      },
+      "workplace_type": "remote",
+      "workplace_type_text": "Fully remote",
+      "deadline_at": null,
+      "compensation": null,
+      "job": {
+        "id": "471900",
+        "requisition_id": "PIN-0200",
+        "department": {
+          "id": "191",
+          "name": "Engineering"
+        },
+        "division": null
+      }
+    }
+  ]
+}

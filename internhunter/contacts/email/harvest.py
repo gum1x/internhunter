@@ -83,6 +83,87 @@ async def harvest_site_emails(
     return sorted(found)
 
 
+async def harvest_security_txt(ctx: FetchContext, domain: str) -> list[str]:
+    """Pull on-domain emails from a published security.txt (RFC 9116).
+
+    Checks the well-known location and the legacy root path; extracts addresses from
+    ``Contact: mailto:`` lines (and any bare addresses). Graceful empty on failure."""
+    found: set[str] = set()
+    for url in (
+        f"https://{domain}/.well-known/security.txt",
+        f"https://{domain}/security.txt",
+    ):
+        try:
+            text = await ctx.get_text(url, respect_robots=False)
+        except Exception:
+            continue
+        found.update(extract_emails(text, domain=domain))
+    return sorted(found)
+
+
+async def harvest_commit_patch_email(
+    ctx: FetchContext, commit_html_url: str, domain: str | None = None
+) -> str | None:
+    """Fetch a public commit's ``.patch`` and pull the ``From:`` author email.
+
+    ``commit_html_url`` is a github.com commit page URL; appending ``.patch`` yields the
+    raw mbox patch whose ``From:`` header carries the real author address. Keyless.
+    Returns the email (optionally filtered to ``domain``) or None on any failure."""
+    if not commit_html_url.startswith("http"):
+        return None
+    try:
+        text = await ctx.get_text(commit_html_url + ".patch", respect_robots=False)
+    except Exception:
+        return None
+    for line in text.splitlines():
+        if line.startswith("From:"):
+            emails = extract_emails(line)
+            for email in emails:
+                if "users.noreply.github.com" in email:
+                    continue
+                if domain and not email.endswith("@" + domain.lower()):
+                    continue
+                return email
+            break  # first From: header only (the patch author)
+    return None
+
+
+async def harvest_github_login_email(
+    ctx: FetchContext, login: str, domain: str | None = None, max_commits: int = 2
+) -> str | None:
+    """Best-effort real email for a GitHub user via their public commit ``.patch`` files.
+
+    Reads the user's recent public PushEvents (keyless REST), takes the first couple of
+    commit URLs, and fetches each ``.patch`` for the ``From:`` author email. Bounded to
+    ``max_commits`` fetches. Returns the first matching address or None."""
+    try:
+        events = await ctx.get_json(
+            f"https://api.github.com/users/{login}/events/public", respect_robots=False
+        )
+    except Exception:
+        return None
+    if not isinstance(events, list):
+        return None
+    urls: list[str] = []
+    for event in events:
+        if not isinstance(event, dict) or event.get("type") != "PushEvent":
+            continue
+        repo = (event.get("repo") or {}).get("name")
+        for commit in (event.get("payload") or {}).get("commits", []):
+            sha = commit.get("sha") if isinstance(commit, dict) else None
+            if repo and sha:
+                urls.append(f"https://github.com/{repo}/commit/{sha}")
+            if len(urls) >= max_commits:
+                break
+        if len(urls) >= max_commits:
+            break
+    for url in urls[:max_commits]:
+        email = await harvest_commit_patch_email(ctx, url, domain)
+        if email:
+            return email
+    return None
+
+
 async def harvest_searxng_emails(
     ctx: FetchContext,
     searxng_url: str,

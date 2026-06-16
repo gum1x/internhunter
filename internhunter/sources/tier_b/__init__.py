@@ -13,6 +13,8 @@ _POLLER_MODULES = [
     "internhunter.sources.tier_b.dover",
     "internhunter.sources.tier_b.zohorecruit",
     "internhunter.sources.tier_b.gem",
+    "internhunter.sources.tier_b.comeet",
+    "internhunter.sources.tier_b.teamtailor",
 ]
 
 for _module in _POLLER_MODULES:

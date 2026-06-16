@@ -62,11 +62,14 @@ class Settings(BaseSettings):
     # --- contact discovery ---
     # Which company_slugs to enrich: gate to high-fit/notifiable jobs by default.
     contacts_min_fit: float = 0.0
-    contacts_max_per_company: int = 8
-    contacts_methods: str = "searxng,github,ats_raw"  # +team,staffspy optional
+    contacts_max_per_company: int = 16
+    contacts_methods: str = "searxng,github,ats_raw,team,registries"  # +staffspy optional
     enrich_use_browser: bool = False  # flip enable_browser for team-page / staffspy scrapes
     # GitHub: optional free PAT lifts the rate limit 60 -> 5000 req/hr.
     github_token: str = ""
+    # Optional GitHub code-search discovery channel. OFF by default to keep the core
+    # keyless: code search REQUIRES github_token, so this is a no-op without one.
+    github_code_search: bool = False
     # Email verification — on by default; all checks are HTTPS (work despite blocked port 25).
     verify_emails: bool = True  # GitHub commit-search + Gravatar + holehe
     smtp_verify_host: str = ""  # set only if a port-25-capable relay exists; else SMTP is skipped

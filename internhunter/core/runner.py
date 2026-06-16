@@ -175,6 +175,7 @@ class DiscoverySummary:
     boards_new: int = 0
     boards_seen: int = 0
     jobs_ingested: int = 0
+    listings_reresolved: int = 0
     per_method: dict[str, int] = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
 
@@ -192,6 +193,7 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
     from internhunter.discovery.internship_lists import ingest_internship_lists
     from internhunter.discovery.job_apis import ingest_job_apis
     from internhunter.discovery.merge import merge_boards
+    from internhunter.discovery.reresolve import reresolve_listings
     from internhunter.discovery.similar import discover_similar_companies
     from internhunter.discovery.urlscan import discover_from_urlscan
     from internhunter.discovery.wayback import discover_from_wayback
@@ -223,6 +225,20 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
         summary.per_method[name] = len(refs)
         all_refs.extend(refs)
 
+    # Optional GitHub code-search channel (opt-in; no-op without flag + token).
+    if resolved.github_code_search and resolved.github_token:
+        from internhunter.discovery.github_code import discover_from_github_code
+
+        try:
+            async with build_fetch_context(resolved) as ctx:
+                detections = await discover_from_github_code(ctx, resolved)
+            gh_refs = [detection_to_board_ref(d) for d in detections]
+            summary.per_method["github_code"] = len(gh_refs)
+            all_refs.extend(gh_refs)
+        except Exception as exc:
+            summary.errors.append(f"github_code: {exc}")
+            summary.per_method["github_code"] = 0
+
     merged = merge_boards(all_refs)
     summary.boards_new += merged.new_boards
     summary.boards_seen += merged.existing
@@ -240,6 +256,16 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
         except Exception as exc:
             summary.errors.append(f"{name}: {exc}")
             summary.per_method[name] = 0
+
+    # Recover real ATS boards from jobs stuck as ats='listing' at ingest.
+    try:
+        examined, new_boards = await reresolve_listings(resolved)
+        summary.listings_reresolved = examined
+        summary.per_method["reresolve"] = new_boards
+        summary.boards_new += new_boards
+    except Exception as exc:
+        summary.errors.append(f"reresolve: {exc}")
+        summary.per_method["reresolve"] = 0
 
     return summary
 
