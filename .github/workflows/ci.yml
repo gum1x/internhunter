@@ -30,7 +30,7 @@ jobs:
           boards = load_boards()
           keys = [(b.ats, b.token) for b in boards]
           assert len(keys) == len(set(keys)), 'duplicate (ats, token) in registry'
-          known = {'greenhouse','lever','ashby','workable','smartrecruiters','recruitee','personio','breezy','jazzhr','jobvite','bamboohr','rippling','dover','zohorecruit','workday','icims','ultipro','oracle_cloud','adp','paylocity'}
+          known = {'greenhouse','lever','ashby','workable','smartrecruiters','recruitee','personio','breezy','jazzhr','jobvite','bamboohr','rippling','dover','zohorecruit','workday','icims','ultipro','oracle_cloud','adp','paylocity','pinpoint','comeet','teamtailor'}
           assert all(b.ats in known for b in boards), 'unknown ats in registry'
           assert registry_stats()['total'] == len(boards)
           print(f'registry ok: {len(boards)} boards')
