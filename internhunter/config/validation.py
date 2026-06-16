@@ -1,6 +1,7 @@
 """Environment and configuration validation."""
 
 import os
+from typing import Any
 
 from pydantic import ValidationError
 
@@ -12,7 +13,7 @@ def validate_environment() -> list[str]:
     warnings = []
     
     try:
-        settings = Settings()
+        settings: Any = Settings()
         
         # Check for required but missing settings
         if not settings.database_url:
