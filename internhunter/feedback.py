@@ -3,7 +3,6 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -14,7 +13,7 @@ class Feedback(BaseModel):
     type: str  # "bug", "feature", "question"
     title: str
     description: str
-    contact_email: Optional[str] = None
+    contact_email: str | None = None
     created_at: datetime = datetime.now()
     
     def to_dict(self) -> dict:

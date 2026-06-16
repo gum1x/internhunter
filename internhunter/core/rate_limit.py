@@ -2,7 +2,6 @@
 
 import asyncio
 import time
-from typing import Dict, Optional
 
 
 class RateLimiter:
@@ -11,7 +10,7 @@ class RateLimiter:
     def __init__(self, requests_per_second: float = 2.0):
         self.requests_per_second = requests_per_second
         self.min_interval = 1.0 / requests_per_second
-        self.last_call_time: Dict[str, float] = {}
+        self.last_call_time: dict[str, float] = {}
         self.lock = asyncio.Lock()
     
     async def wait_for_domain(self, domain: str) -> None:
