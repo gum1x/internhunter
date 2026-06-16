@@ -1,25 +1,24 @@
 name: Example Candidate
-  skills:
-    - python
-    - javascript
-    - sql
-    - data-analysis
-    - automation
-  interests:
-    - software
-    - data
-    - startups
-  target_sectors:
-    - software
-    - data-ml-ai
-    - startups
-    - general-tech
-  locations:
-    - Remote
-    - Any
-  remote_ok: true
-  graduation_year: 2026
-  seeking:
-    - summer internship
-    - internship
-  
+skills:
+  - python
+  - javascript
+  - sql
+  - data-analysis
+  - automation
+interests:
+  - software
+  - data
+  - startups
+target_sectors:
+  - software
+  - data-ml-ai
+  - startups
+  - general-tech
+locations:
+  - Remote
+  - Any
+remote_ok: true
+graduation_year: 2026
+seeking:
+  - summer internship
+  - internship
