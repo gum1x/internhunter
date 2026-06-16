@@ -1,7 +1,7 @@
 """Oracle Taleo ATS integration (placeholder)."""
+from typing import Any
 
-
-from ..base import Internship, Source
+from ..base import Source
 
 
 class TaleoSource(Source):
@@ -10,7 +10,7 @@ class TaleoSource(Source):
     name = "taleo"
     base_urls = ["https://{tenant}.taleo.net"]
     
-    async def fetch_internships(self) -> list[Internship]:
+    async def fetch_internships(self) -> list[Any]:
         """Fetch internships from Taleo."""
         # This is a placeholder - Taleo integration would require
         # reverse engineering their JavaScript-heavy interface

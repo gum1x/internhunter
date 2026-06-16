@@ -3,6 +3,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -16,7 +17,7 @@ class Feedback(BaseModel):
     contact_email: str | None = None
     created_at: datetime = datetime.now()
     
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert feedback to dictionary."""
         data = self.dict()
         data["created_at"] = self.created_at.isoformat()
