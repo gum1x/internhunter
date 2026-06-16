@@ -1,7 +1,5 @@
 """Cache configuration for InternHunter."""
 
-from datetime import timedelta
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -18,7 +16,7 @@ class CacheSettings(BaseSettings):
         default=100,
         description="Maximum cache size in megabytes"
     )
-    redis_url: Optional[str] = Field(
+    redis_url: str | None = Field(
         default=None,
         description="Redis URL for distributed caching (optional)"
     )

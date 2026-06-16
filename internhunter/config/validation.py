@@ -1,14 +1,13 @@
 """Environment and configuration validation."""
 
 import os
-from typing import List, Optional
 
 from pydantic import ValidationError
 
 from .settings import Settings
 
 
-def validate_environment() -> List[str]:
+def validate_environment() -> list[str]:
     """Validate environment configuration and return warnings."""
     warnings = []
     
@@ -47,7 +46,7 @@ def check_prerequisites() -> bool:
     """Check if system prerequisites are met."""
     # Check Python version
     import sys
-    if sys.version_info < (3, 12):
+    if sys.version_info < (3, 12):  # noqa: UP036
         print(f"Warning: Python 3.12+ required, found {sys.version}")
         return False
     

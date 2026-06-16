@@ -2,15 +2,12 @@
 
 import csv
 import json
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
 
-from .core.db import Session
 from .core.models import Internship
 
 
-def export_internships_csv(filepath: Path, internships: List[Internship]) -> None:
+def export_internships_csv(filepath: Path, internships: list[Internship]) -> None:
     """Export internships to CSV file."""
     fieldnames = [
         "id", "company", "title", "location", "url", 
@@ -35,7 +32,7 @@ def export_internships_csv(filepath: Path, internships: List[Internship]) -> Non
             })
 
 
-def export_internships_json(filepath: Path, internships: List[Internship]) -> None:
+def export_internships_json(filepath: Path, internships: list[Internship]) -> None:
     """Export internships to JSON file."""
     data = [
         {
