@@ -109,6 +109,11 @@ def _cmd_discover(args: argparse.Namespace) -> None:
 
                 ats = [a.strip() for a in args.ats.split(",") if a.strip()] if args.ats else None
                 return await discover_from_urlscan(ctx, ats=ats)
+            if args.method == "github_code":
+                from internhunter.discovery.github_code import discover_from_github_code
+
+                ats = [a.strip() for a in args.ats.split(",") if a.strip()] if args.ats else None
+                return await discover_from_github_code(ctx, settings, ats=ats)
             if args.method == "yc":
                 from internhunter.discovery.yc import discover_from_yc
 
@@ -357,6 +362,7 @@ def main() -> None:
         choices=[
             "sitemap", "common_crawl", "searxng", "hackernews", "urlscan",
             "yc", "vc", "crtsh", "jsonld", "wayback", "similar", "edgar",
+            "github_code",
         ],
         required=True,
     )

@@ -136,6 +136,9 @@ _SUBDOMAIN_ATS = (
     (".bamboohr.com", "bamboohr"),
     (".rippling-ats.com", "rippling"),
     (".zohorecruit.com", "zohorecruit"),
+    (".pinpointhq.com", "pinpoint"),
+    # api.teamtailor.com -> "api" is in _RESERVED_TOKENS, so it is excluded by _valid_token
+    (".teamtailor.com", "teamtailor"),
 )
 
 _PATH_ATS = (
@@ -143,6 +146,9 @@ _PATH_ATS = (
     ("jobs.dover.com", "companies", "dover"),
     ("careers.icims.com", "jobs", "icims"),
     ("jobs.adp.com", "company", "adp"),
+    # comeet boards: www.comeet.com/jobs/{company-slug}/{uid}; company-slug is the stable token
+    ("www.comeet.com", "jobs", "comeet"),
+    ("www.comeet.co", "jobs", "comeet"),
 )
 
 _PATH_FIRST_ATS = (

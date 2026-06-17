@@ -32,6 +32,9 @@ from internhunter.discovery.fingerprint import detect_from_html, detect_from_url
         ("https://jobs.adp.com/company/acme", "adp", "acme"),
         ("https://recruiting.ultipro.com/ACM1001/JobBoard/abc/Jobs.xml", "ultipro", "ACM1001"),
         ("https://acme.fa.oraclecloud.com/hcmUI/CandidateExperience/", "oracle_cloud", "acme"),
+        ("https://acme.pinpointhq.com/en/postings", "pinpoint", "acme"),
+        ("https://acme.teamtailor.com/jobs", "teamtailor", "acme"),
+        ("https://www.comeet.com/jobs/acme/30.005", "comeet", "acme"),
     ],
 )
 def test_detect_from_url(url: str, ats: str, token: str) -> None:

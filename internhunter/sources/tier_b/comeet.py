@@ -4,6 +4,7 @@ import json
 import re
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
+from typing import Any
 
 from internhunter.core.fetch import FetchContext
 from internhunter.core.internship_filter import classify_internship
@@ -20,53 +21,77 @@ from internhunter.core.normalize import (
 )
 from internhunter.sources.base import BoardRef, RawPosting, Source, Tier, register_source
 
-_BASE_URL = "https://recruiting.paylocity.com"
-_PAGE_DATA_RE = re.compile(r"window\.pageData\s*=\s*(\{.*?\});", re.DOTALL)
+_BASE_URL = "https://www.comeet.com"
+_POSITIONS_RE = re.compile(r"COMPANY_POSITIONS_DATA\s*=\s*(\[.*?\]);", re.DOTALL)
 
 
-def _board_guid(token: str) -> str:
-    return token.strip("/").split("/")[0]
+def _board_path(token: str) -> str:
+    return token.strip("/")
+
+
+def _build_location(location: dict[str, Any]) -> str | None:
+    name = location.get("name")
+    if name:
+        return str(name).strip()
+    parts = [
+        str(location[key]).strip()
+        for key in ("city", "state", "country")
+        if location.get(key)
+    ]
+    if parts:
+        return ", ".join(parts)
+    return None
 
 
 @register_source
-class PaylocitySource(Source):
-    ats: str = "paylocity"
-    tier: Tier = Tier.C
+class ComeetSource(Source):
+    ats: str = "comeet"
+    tier: Tier = Tier.B
     needs_browser: bool = False
 
     def board_url(self, ref: BoardRef) -> str:
-        return f"{_BASE_URL}/recruiting/jobs/All/{_board_guid(ref.token)}"
+        return f"{_BASE_URL}/jobs/{_board_path(ref.token)}"
 
     async def fetch(self, ref: BoardRef, ctx: FetchContext) -> AsyncIterator[RawPosting]:
         html = await ctx.get_text(self.board_url(ref))
-        match = _PAGE_DATA_RE.search(html)
+        match = _POSITIONS_RE.search(html)
         if match is None:
-            ctx.logger.debug("paylocity pageData not found for {}", ref.token)
+            ctx.logger.debug("comeet positions data not found for {}", ref.token)
             return
         try:
-            data = json.loads(match.group(1))
+            positions = json.loads(match.group(1))
         except json.JSONDecodeError:
-            ctx.logger.debug("paylocity pageData parse failed for {}", ref.token)
+            ctx.logger.debug("comeet positions parse failed for {}", ref.token)
             return
-        for job in data.get("Jobs") or []:
-            yield RawPosting(raw=job)
+        for position in positions:
+            yield RawPosting(raw=position)
 
     def normalize(self, raw: RawPosting, ref: BoardRef) -> NormalizedJob:
-        job = raw.raw
-        title = str(job.get("JobTitle") or "").strip()
-        source_job_id = str(job["JobId"]) if job.get("JobId") else None
-        canonical_url = (
-            f"{_BASE_URL}/Recruiting/Jobs/Details/{source_job_id}"
-            if source_job_id
-            else self.board_url(ref)
+        position = raw.raw
+        title = str(position.get("name") or "").strip()
+        source_job_id = str(position["uid"]) if position.get("uid") else None
+
+        canonical_url = str(
+            position.get("url_comeet_hosted_page")
+            or position.get("url_active_page")
+            or self.board_url(ref)
         )
 
-        description_text = str(job.get("Description") or "")
-        location_raw = job.get("LocationName")
+        location_data = position.get("location") or {}
+        location_raw = (
+            _build_location(location_data) if isinstance(location_data, dict) else None
+        )
         location = normalize_location(location_raw)
+        is_remote = location.is_remote or bool(
+            location_data.get("is_remote") if isinstance(location_data, dict) else False
+        )
 
+        department = position.get("department")
+        employment_type = position.get("employment_type")
+
+        description_text = ""
         classification = classify_internship(title, description_text)
-        company = ref.company or _board_guid(ref.token)
+        company = ref.company or str(position.get("company_name") or "") or ref.token
         now = datetime.now(UTC)
 
         return NormalizedJob(
@@ -80,6 +105,8 @@ class PaylocitySource(Source):
             company_slug=normalize_company_slug(company),
             title=title,
             title_normalized=normalize_title(title),
+            department=str(department).strip() if department else None,
+            employment_type=str(employment_type).strip() if employment_type else None,
             is_internship=classification.is_internship,
             internship_kind=classification.kind,
             level_tags=classification.level_tags,
@@ -88,13 +115,13 @@ class PaylocitySource(Source):
             country=location.country,
             region=location.region,
             city=location.city,
-            is_remote=location.is_remote or bool(job.get("IsRemote")),
+            is_remote=is_remote,
             remote_scope=location.remote_scope,
             description_text=description_text,
-            posted_at=parse_datetime(job.get("PublishedDate")),
+            posted_at=parse_datetime(position.get("time_updated")),
             deadline_at=extract_deadline(description_text),
             is_rolling=is_rolling(description_text),
             first_seen_at=now,
             last_seen_at=now,
-            raw=job,
+            raw=position,
         )

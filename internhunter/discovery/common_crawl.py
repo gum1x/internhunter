@@ -27,6 +27,9 @@ _ATS_PATTERNS: dict[str, str] = {
     "adp": "jobs.adp.com/company/*",
     "ultipro": "recruiting.ultipro.com/*",
     "oracle_cloud": "*.fa.oraclecloud.com/*",
+    "pinpoint": "*.pinpointhq.com/*",
+    "teamtailor": "*.teamtailor.com/*",
+    "comeet": "www.comeet.com/jobs/*",
 }
 
 _COLLINFO_URL = "https://index.commoncrawl.org/collinfo.json"
