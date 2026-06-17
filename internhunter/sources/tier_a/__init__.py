@@ -12,6 +12,7 @@ _POLLER_MODULES = [
     "internhunter.sources.tier_a.recruitee",
     "internhunter.sources.tier_a.workable",
     "internhunter.sources.tier_a.personio",
+    "internhunter.sources.tier_a.pinpoint",
 ]
 
 for _module in _POLLER_MODULES:

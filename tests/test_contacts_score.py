@@ -47,3 +47,37 @@ def test_role_account_penalty() -> None:
         EmailSignals(pattern_votes=3, role_account_for_person=True)
     )[0]
     assert penalized == base - 10
+
+
+def test_no_mx_is_invalid() -> None:
+    score, label = score_email(EmailSignals(scraped=True, mx_present=False))
+    assert score == 0
+    assert label == "invalid"
+
+
+def test_spf_dmarc_small_positive() -> None:
+    base = score_email(EmailSignals(pattern_votes=1))[0]
+    boosted = score_email(EmailSignals(pattern_votes=1, spf_dmarc=True))[0]
+    assert boosted == base + 5
+
+
+def test_pgp_confirmed_adds_and_promotes() -> None:
+    # pgp alone is a strong HTTPS signal (+22); with a corpus vote it reaches verified.
+    score, label = score_email(EmailSignals(pattern_votes=1, pgp_confirmed=True))
+    assert score >= 85
+    assert label == "verified"
+
+
+def test_catch_all_none_is_no_penalty() -> None:
+    # Unknown catch-all status must not penalize (mirrors the old False behaviour).
+    known = score_email(EmailSignals(scraped=True, catch_all=False))[0]
+    unknown = score_email(EmailSignals(scraped=True, catch_all=None))[0]
+    assert unknown == known
+
+
+def test_catch_all_true_caps() -> None:
+    score, label = score_email(
+        EmailSignals(scraped=True, github=True, catch_all=True)
+    )
+    assert score <= 60
+    assert label != "verified"

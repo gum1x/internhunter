@@ -1,6 +1,6 @@
 # InternHunter
 
-Self-hosted internship discovery engine. It polls company ATS boards **directly** across 20 platforms in 3 tiers, grows its board registry automatically, ranks roles against your profile locally, **reads each posting to filter out spam/ghost/low-quality listings**, and **finds outreach contacts (recruiters, hiring managers) with verified emails** — surfacing rare/fresh internships that aggregators miss.
+Self-hosted internship discovery engine. It polls company ATS boards **directly** across 24 platforms in 3 tiers, grows its board registry automatically, ranks roles against your profile locally, **reads each posting to filter out spam/ghost/low-quality listings**, and **finds outreach contacts (recruiters, hiring managers) with verified emails** — surfacing rare/fresh internships that aggregators miss.
 
 No third-party job-board API. No paywall. Your machine, your data, the companies' own endpoints.
 
@@ -26,12 +26,12 @@ cp .env.example .env
 docker compose up --build
 ```
 
-## Coverage (20 platforms, 3 tiers)
+## Coverage (24 platforms, 3 tiers)
 
 | Tier | Transport | Platforms |
 |---|---|---|
-| **A** — keyless JSON | httpx | Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee, Personio |
-| **B** — public HTML/JSON | httpx | BreezyHR, BambooHR, Jobvite, JazzHR, Zoho Recruit, Dover, Rippling, Gem |
+| **A** — keyless JSON | httpx | Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee, Personio, Pinpoint |
+| **B** — public HTML/JSON | httpx | BreezyHR, BambooHR, Jobvite, JazzHR, Zoho Recruit, Dover, Rippling, Gem, Comeet, Teamtailor |
 | **C** — JSON/XML probe + stealth browser | httpx / Playwright / CloakBrowser | Workday, iCIMS, Oracle Cloud, ADP, UltiPro/UKG, Paylocity |
 
 ## Commands
@@ -50,8 +50,9 @@ internhunter discover --method jsonld --url https://acme.com/careers  # schema.o
 internhunter discover --method wayback                 # Wayback Machine CDX (2nd keyless index)
 internhunter discover --method similar                 # embedding-based "companies like the ones you win on"
 internhunter discover --method edgar                   # SEC Form D — just-funded startups (+ officer leads)
-internhunter discover-all                              # run every cheap channel + grow registry (also scheduled daily)
-internhunter reresolve                                 # recover real boards from unresolved 'listing' jobs
+internhunter discover --method github_code             # opt-in: GitHub code search for ATS tokens (needs GITHUB_TOKEN, off by default)
+internhunter discover-all                              # run every cheap channel + reresolve + grow registry (also scheduled daily)
+internhunter reresolve                                 # recover real boards from unresolved 'listing' jobs (also runs in discover-all)
 internhunter score                                     # local fit + freshness + rarity -> discovery score
 internhunter score-quality                             # LLM reads borderline jobs -> legitimacy verdict (anti-slop)
 internhunter find-contacts --limit 50                  # find recruiters/hiring contacts + emails per company
@@ -61,7 +62,7 @@ internhunter serve                                     # FastAPI + HTMX dashboar
 
 ### What grows coverage & filters slop
 
-- **Scheduled discovery** (`discover-all`, daily) keeps the board registry full automatically — the biggest coverage lever, since the engine already polls 20 ATS platforms but the registry was only grown by manual runs. Channels: Common Crawl (paginated), urlscan, HN, broadened SearXNG dorks (all 20 ATS × niche keywords), expanded GitHub list ingestion, **crt.sh** custom-domain careers enumeration, and **JSON-LD `JobPosting`** harvesting.
+- **Scheduled discovery** (`discover-all`, daily) keeps the board registry full automatically — the biggest coverage lever, since the engine already polls 24 ATS platforms but the registry was only grown by manual runs. Channels: Common Crawl (paginated), urlscan, HN, broadened SearXNG dorks (all ATS × niche keywords), expanded GitHub list ingestion, **crt.sh** custom-domain careers enumeration, and **JSON-LD `JobPosting`** harvesting. The daily run also **reresolves** unrecognized `listing` jobs back into real boards, and an **opt-in GitHub code-search** channel (needs `GITHUB_TOKEN`, off by default) harvests ATS tokens at scale.
 - **Anti-slop quality reading** scores every job with free heuristics at ingest (ghost/agency/MLM/content-free/evergreen flags + a per-job `sightings` open-duration log), then an LLM reads only the *borderline* jobs (`score-quality`) and assigns a legitimacy verdict. The dashboard hides confirmed slop by default (toggle to show — **nothing is ever deleted**), and notifications skip it.
 
 The dashboard is sortable by **discovery score**, **fit**, freshness, deadline, and more, with substring/ATS/remote filters and CSV export. A **Contacts** view lists discovered people per company with confidence-labelled emails and its own CSV export.
@@ -71,8 +72,8 @@ The dashboard is sortable by **discovery score**, **fit**, freshness, deadline, 
 `find-contacts` enriches the companies behind discovered internships with outreach contacts — recruiters, hiring/eng managers, and a few engineers — and a best-effort email for each, using only self-hosted methods (no paid APIs):
 
 - **People** — SearXNG LinkedIn-profile dorking (zero ban risk) + GitHub org members/commit authors; optional company team pages and StaffSpy (aggressive, needs a burner LinkedIn cookie).
-- **Emails** — published/scraped addresses, real GitHub commit emails, email-format inference from same-domain samples, size-aware priors, and recruiting aliases (`careers@`, `university@`).
-- **Confidence** — every email is scored 0–100 and labelled `verified` / `probable` / `guessed` from honest signals. Live SMTP verification is wired but **off by default** (the typical residential host blocks outbound port 25); HTTPS-based `holehe` verification (`--verify`) works regardless.
+- **Emails** — published/scraped addresses (including `/.well-known/security.txt` and RDAP registrant records), real GitHub commit emails (via the `.patch` trick), email-format inference from same-domain samples, size-aware priors, and recruiting aliases (`careers@`, `university@`).
+- **Confidence** — every email is scored 0–100 and labelled `verified` / `probable` / `guessed` from honest signals: DNS **MX / SPF / DMARC** checks, **OpenPGP keyserver** confirmation, GitHub, Gravatar, `holehe`, and **catch-all detection**. Live SMTP verification is wired but **off by default** (the typical residential host blocks outbound port 25); the HTTPS/DNS-based signals (`--verify`) work regardless.
 
 Config via `INTERNHUNTER_*` env vars: `CONTACTS_METHODS`, `CONTACTS_MAX_PER_COMPANY`, `GITHUB_TOKEN` (lifts the GitHub rate limit), `VERIFY_EMAILS`, `LLM_BASE_URL` (local llama.cpp for role classification; falls back to a keyword heuristic). Install extras with `pip install -e ".[contacts]"` (or `".[contacts,contacts-aggressive]"` for StaffSpy).
 

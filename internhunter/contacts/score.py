@@ -19,8 +19,12 @@ class EmailSignals:
     corroborating_channels: int = 0  # how many independent agreeing channels
     smtp_valid: bool = False  # SMTP RCPT accepted on a non-catch-all domain
     smtp_rejected: bool = False  # SMTP RCPT 550 -> mailbox does not exist
-    catch_all: bool = False  # domain accepts everything; SMTP gives no signal
+    catch_all: bool | None = False  # True=accepts everything (SMTP no signal); None=unknown
     role_account_for_person: bool = False  # role inbox where a person was expected
+    mx_present: bool = True  # domain publishes MX records (DNS); only the runner sets False
+    #   from a real DNS lookup. Defaults True so non-DNS callers stay unaffected.
+    spf_dmarc: bool = False  # domain publishes SPF and/or DMARC -> well-managed mail
+    pgp_confirmed: bool = False  # owner-verified key on keys.openpgp.org (HTTPS proof)
 
 
 # Base confidence for a NON-email channel by how it was sourced.
@@ -60,6 +64,11 @@ def score_email(signals: EmailSignals) -> tuple[float, str]:
     if signals.smtp_rejected:
         return 0.0, "invalid"
 
+    # No MX (set False only by the runner's real DNS lookup) -> the domain can't receive
+    # mail at all, so any address on it is invalid.
+    if not signals.mx_present:
+        return 0.0, "invalid"
+
     score = 0.0
     if signals.scraped:
         score += 70.0
@@ -86,6 +95,15 @@ def score_email(signals: EmailSignals) -> tuple[float, str]:
     if signals.smtp_valid and not signals.catch_all:
         score += 25.0
 
+    # A verified key on keys.openpgp.org proves the mailbox is real and owner-controlled
+    # (the owner confirmed it by email) — a strong HTTPS signal, like a Gravatar hit.
+    if signals.pgp_confirmed:
+        score += 22.0
+    # SPF/DMARC don't validate a mailbox, but a well-managed mail domain makes a
+    # pattern-inferred address marginally more credible (modest, prior-sized).
+    if signals.spf_dmarc:
+        score += 5.0
+
     # A confirmed mailbox (M365 GetCredentialType) queries identity, not SMTP — so it
     # holds even on a catch-all domain and, with any real source, means "verified".
     if signals.mailbox_confirmed:
@@ -95,6 +113,13 @@ def score_email(signals: EmailSignals) -> tuple[float, str]:
         # the verifier confirmed THIS person's name -> definitively verified
         if signals.identity_confirmed:
             score = max(score, 88.0)
+
+    # An owner-verified PGP key is near-proof the address is real -> promote to "verified"
+    # whenever any corpus/source signal already backs the local-part.
+    if signals.pgp_confirmed and (
+        signals.pattern_votes >= 1 or signals.scraped or signals.github
+    ):
+        score = max(score, 85.0)
 
     # Company format locked from a REAL on-domain email -> teammates' guesses are at least
     # "probable" (you'd actually send to them); a verifier can still push to "verified".

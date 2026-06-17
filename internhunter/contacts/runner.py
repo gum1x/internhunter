@@ -11,6 +11,8 @@ from internhunter.contacts.classify import classify_title, role_priority
 from internhunter.contacts.email.finder import find_email
 from internhunter.contacts.email.harvest import (
     candidate_aliases,
+    harvest_github_login_email,
+    harvest_security_txt,
     harvest_site_emails,
     harvest_theharvester,
     is_role_account,
@@ -201,6 +203,7 @@ def _name_matches(a: str | None, b: str | None) -> bool:
 
 
 async def _verify_email(
+    ctx: FetchContext,
     result: EmailResult,
     settings: Settings,
     provider: str = "unknown",
@@ -220,6 +223,47 @@ async def _verify_email(
         role_account_for_person=is_role_account(result.email),
     )
     changed = False
+
+    # Keyless DNS posture for the email's domain (MX/SPF/DMARC are plain DNS, fast & sync).
+    email_domain = result.email.split("@", 1)[1] if "@" in result.email else ""
+    if email_domain:
+        from internhunter.contacts.email import verify_dns
+
+        try:
+            mx = await asyncio.to_thread(verify_dns.mx_hosts, email_domain)
+            signals.mx_present = bool(mx)
+            if not mx:
+                result.email_status = "invalid"
+                result.confidence, result.label = 0.0, "invalid"
+                ev["mx"] = False
+                return
+            spf, dmarc = await asyncio.gather(
+                asyncio.to_thread(verify_dns.has_spf, email_domain),
+                asyncio.to_thread(verify_dns.has_dmarc, email_domain),
+            )
+            if spf or dmarc:
+                signals.spf_dmarc = True
+                ev["spf_dmarc"] = True
+                changed = True
+            if settings.smtp_verify_host:
+                ca = await verify_dns.is_catch_all(email_domain, settings.smtp_verify_host)
+                signals.catch_all = ca
+                if ca is True:
+                    ev["catch_all"] = True
+                    changed = True
+        except Exception:
+            pass
+
+    # keys.openpgp.org owner-verified key -> strong proof this exact mailbox is real.
+    try:
+        from internhunter.contacts.email.openpgp import pgp_email_exists
+
+        if await pgp_email_exists(ctx, result.email):
+            signals.pgp_confirmed = True
+            ev["pgp"] = True
+            changed = True
+    except Exception:
+        pass
 
     # Real per-mailbox confirmation for Microsoft 365 domains (the strongest HTTPS signal).
     if provider == "microsoft" and settings.m365_verify:
@@ -330,6 +374,16 @@ async def _enrich_company(
         except Exception:
             pass
         try:
+            scraped_emails += await harvest_security_txt(ctx, domain)
+        except Exception:
+            pass
+        try:
+            from internhunter.contacts.email.rdap import rdap_emails
+
+            scraped_emails += await rdap_emails(ctx, domain)
+        except Exception:
+            pass
+        try:
             scraped_emails += await asyncio.to_thread(harvest_theharvester, domain)
         except Exception:
             pass
@@ -351,6 +405,18 @@ async def _enrich_company(
                 )
             except Exception:
                 pass
+    # Backfill a real email for GitHub-known people via a public commit .patch (bounded).
+    for person in people:
+        if person.known_email or not person.github_login:
+            continue
+        try:
+            patch_email = await harvest_github_login_email(
+                ctx, person.github_login, domain
+            )
+        except Exception:
+            patch_email = None
+        if patch_email:
+            person.known_email = patch_email
     for person in people:
         if person.full_name and person.known_email:
             known_pairs.append((person.full_name, person.known_email))
@@ -425,7 +491,7 @@ async def _enrich_company(
                     locked_template=locked_template,
                 )
                 if result.email and settings.verify_emails:
-                    await _verify_email(result, settings, provider, person)
+                    await _verify_email(ctx, result, settings, provider, person)
         contactability = (result.confidence / 100.0) if (result and result.email) else 0.1
         rank = role_priority(person.role_category) * (0.4 + 0.6 * contactability)
         scored.append((rank, person, result))

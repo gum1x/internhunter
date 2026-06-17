@@ -23,6 +23,9 @@ _ATS_QUERIES: dict[str, str] = {
     "zohorecruit": "domain:zohorecruit.com",
     "workday": "domain:myworkdayjobs.com",
     "icims": "domain:icims.com",
+    "pinpoint": "domain:pinpointhq.com",
+    "teamtailor": "domain:teamtailor.com",
+    "comeet": "domain:comeet.com",
 }
 
 _LOCALE_RE = re.compile(r"^[a-z]{2}-[A-Za-z]{2}$")

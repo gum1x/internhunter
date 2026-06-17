@@ -23,6 +23,7 @@ dependencies = [
     "pyyaml",
     "numpy",
     "apscheduler",
+    "tzlocal",
     "aiofiles",
     "structlog",
 ]
@@ -52,6 +53,7 @@ dev = [
     "types-python-dateutil",
     "types-PyYAML",
     "numpy",
+    "dnspython",
 ]
 
 [project.scripts]

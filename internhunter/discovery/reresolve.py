@@ -15,7 +15,7 @@ from internhunter.discovery.merge import merge_boards
 
 
 async def reresolve_listings(
-    settings: Settings | None = None, limit: int = 200
+    settings: Settings | None = None, limit: int = 2000
 ) -> tuple[int, int]:
     """Recover real ATS boards from jobs stored as ats='listing'.
 
