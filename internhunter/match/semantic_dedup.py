@@ -11,6 +11,19 @@ def _job_text(job: NormalizedJob) -> str:
     return f"{job.title}. {job.description_text}"
 
 
+def _find(parent: list[int], x: int) -> int:
+    while parent[x] != x:
+        parent[x] = parent[parent[x]]
+        x = parent[x]
+    return x
+
+
+def _union(parent: list[int], a: int, b: int) -> None:
+    ra, rb = _find(parent, a), _find(parent, b)
+    if ra != rb:
+        parent[max(ra, rb)] = min(ra, rb)
+
+
 def semantic_groups(
     jobs: list[NormalizedJob],
     encoder: Encoder,
@@ -30,18 +43,21 @@ def semantic_groups(
     for indices in by_company.values():
         block = vectors[indices]
         sims = cosine_matrix(block, block)
-        clusters: list[list[tuple[int, int]]] = []
-        for local, index in enumerate(indices):
-            placed = False
-            for cluster in clusters:
-                if any(sims[local, member] >= threshold for member, _ in cluster):
-                    cluster.append((local, index))
-                    placed = True
-                    break
-            if not placed:
-                clusters.append([(local, index)])
-        for cluster in clusters:
-            groups.append([jobs[index] for _, index in cluster])
+        # Connected components over the >=threshold similarity graph via union-find:
+        # order-independent (unlike the old greedy single-link, which placed each job
+        # into the first cluster it matched in input order). Only direct >=threshold
+        # edges create unions.
+        parent = list(range(len(indices)))
+        for i in range(len(indices)):
+            for j in range(i + 1, len(indices)):
+                if sims[i, j] >= threshold:
+                    _union(parent, i, j)
+
+        components: dict[int, list[int]] = defaultdict(list)
+        for local in range(len(indices)):
+            components[_find(parent, local)].append(local)
+        for members in components.values():
+            groups.append([jobs[indices[local]] for local in members])
 
     return groups
 

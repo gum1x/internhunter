@@ -1,36 +1,44 @@
 from __future__ import annotations
 
 import json
-import re
 from typing import Any
+
+from bs4 import BeautifulSoup
 
 from internhunter.core.fetch import FetchContext
 from internhunter.discovery.fingerprint import Detection, detect_from_url
 
-_SCRIPT_RE = re.compile(
-    r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
-    re.IGNORECASE | re.DOTALL,
-)
+_MAX_DEPTH = 100
 
 
-def _walk(node: object, out: list[dict[str, Any]]) -> None:
+def _walk(node: object, out: list[dict[str, Any]], depth: int = 0) -> None:
+    if depth > _MAX_DEPTH:
+        return
     if isinstance(node, dict):
         t = node.get("@type")
         types = t if isinstance(t, list) else [t]
         if any(isinstance(x, str) and x.lower() == "jobposting" for x in types):
             out.append(node)
         for value in node.values():
-            _walk(value, out)
+            _walk(value, out, depth + 1)
     elif isinstance(node, list):
         for item in node:
-            _walk(item, out)
+            _walk(item, out, depth + 1)
+
+
+def _ld_json_blocks(html: str) -> list[str]:
+    soup = BeautifulSoup(html or "", "lxml")
+    return [
+        script.string or script.get_text()
+        for script in soup.find_all("script", type="application/ld+json")
+    ]
 
 
 def extract_jobposting_urls(html: str, page_url: str | None = None) -> list[str]:
     """Pull apply/posting URLs from any schema.org JobPosting JSON-LD on the page."""
     urls: list[str] = []
-    for match in _SCRIPT_RE.finditer(html or ""):
-        block = match.group(1).strip()
+    for block in _ld_json_blocks(html):
+        block = block.strip()
         try:
             data = json.loads(block)
         except json.JSONDecodeError:

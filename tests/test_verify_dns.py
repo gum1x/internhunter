@@ -17,7 +17,7 @@ class _FakeTXT:
 def test_mx_hosts_sorted_by_preference(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     import dns.resolver
 
-    def fake_resolve(name: str, rtype: str):  # type: ignore[no-untyped-def]
+    def fake_resolve(name: str, rtype: str, **kwargs):  # type: ignore[no-untyped-def]
         assert rtype == "MX"
         return [_FakeMX(20, "mx2.acme.com."), _FakeMX(10, "mx1.acme.com.")]
 
@@ -28,7 +28,7 @@ def test_mx_hosts_sorted_by_preference(monkeypatch) -> None:  # type: ignore[no-
 def test_mx_hosts_empty_on_error(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     import dns.resolver
 
-    def boom(name: str, rtype: str):  # type: ignore[no-untyped-def]
+    def boom(name: str, rtype: str, **kwargs):  # type: ignore[no-untyped-def]
         raise RuntimeError("NXDOMAIN")
 
     monkeypatch.setattr(dns.resolver, "resolve", boom)
@@ -38,13 +38,13 @@ def test_mx_hosts_empty_on_error(monkeypatch) -> None:  # type: ignore[no-untype
 def test_has_spf_true_and_false(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     import dns.resolver
 
-    def with_spf(name: str, rtype: str):  # type: ignore[no-untyped-def]
+    def with_spf(name: str, rtype: str, **kwargs):  # type: ignore[no-untyped-def]
         return [_FakeTXT("v=spf1 include:_spf.google.com ~all")]
 
     monkeypatch.setattr(dns.resolver, "resolve", with_spf)
     assert vdns.has_spf("acme.com") is True
 
-    def no_spf(name: str, rtype: str):  # type: ignore[no-untyped-def]
+    def no_spf(name: str, rtype: str, **kwargs):  # type: ignore[no-untyped-def]
         return [_FakeTXT("google-site-verification=abc")]
 
     monkeypatch.setattr(dns.resolver, "resolve", no_spf)
@@ -56,7 +56,7 @@ def test_has_dmarc_queries_underscore_subdomain(monkeypatch) -> None:  # type: i
 
     seen: list[str] = []
 
-    def fake_resolve(name: str, rtype: str):  # type: ignore[no-untyped-def]
+    def fake_resolve(name: str, rtype: str, **kwargs):  # type: ignore[no-untyped-def]
         seen.append(name)
         return [_FakeTXT("v=DMARC1; p=reject")]
 

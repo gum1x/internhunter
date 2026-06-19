@@ -21,6 +21,12 @@ def test_workday_token_parses_tenant_and_site() -> None:
     assert _workday_token("https://boards.greenhouse.io/acme") is None
 
 
+def test_workday_token_rejects_junk_segment() -> None:
+    # A segment with spaces/punctuation must not leak into the shared registry.
+    assert _workday_token("https://acme.wd5.myworkdayjobs.com/en-US/bad seg&ment") is None
+    assert _workday_token("https://acme.wd5.myworkdayjobs.com/en-US/has%20space") is None
+
+
 async def test_discover_from_urlscan(fake_fetch_context: Any) -> None:
     ctx = fake_fetch_context
     gh = {

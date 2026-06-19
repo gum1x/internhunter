@@ -59,8 +59,15 @@ def _aware(dt: datetime | None) -> datetime | None:
 
 def days_open(job: NormalizedJob, now: datetime | None = None) -> int:
     moment = now or datetime.now(tz=UTC)
-    start = _aware(job.posted_at) or _aware(job.first_seen_at)
+    posted = _aware(job.posted_at)
+    first_seen = _aware(job.first_seen_at)
     last = _aware(job.last_seen_at) or moment
+    # A future posted_at is suspicious and must not silently zero-out the ghost
+    # window: fall back to when we first saw the listing instead.
+    if posted is not None and posted > last:
+        start = first_seen
+    else:
+        start = posted or first_seen
     if start is None:
         return 0
     return max(0, (last - start).days)

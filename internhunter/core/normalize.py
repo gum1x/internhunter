@@ -144,7 +144,12 @@ def parse_datetime(value: object) -> datetime | None:
         seconds = float(value)
         if seconds > 1_000_000_000_000:
             seconds = seconds / 1000.0
-        return datetime.fromtimestamp(seconds, tz=UTC)
+        # Hostile/garbage epoch values (e.g. 1e20, a 40-digit string) overflow
+        # fromtimestamp; treat them as "no date" rather than crashing the ingest channel.
+        try:
+            return datetime.fromtimestamp(seconds, tz=UTC)
+        except (OverflowError, OSError, ValueError):
+            return None
     if isinstance(value, str):
         text = value.strip()
         if not text:

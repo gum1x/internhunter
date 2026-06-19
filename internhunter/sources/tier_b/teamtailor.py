@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import html
 import json
 import re
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, TypeGuard
 
 from internhunter.core.fetch import FetchContext
 from internhunter.core.internship_filter import classify_internship
@@ -23,6 +24,7 @@ from internhunter.core.normalize import (
 from internhunter.sources.base import BoardRef, RawPosting, Source, Tier, register_source
 
 _JOB_LINK_RE = re.compile(r'href="(https://[^"]+\.teamtailor\.com/jobs/(\d+)[^"#?]*)"')
+_MAX_DETAIL_FETCHES = 60
 _LD_JSON_RE = re.compile(
     r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
     re.DOTALL | re.IGNORECASE,
@@ -65,9 +67,12 @@ class TeamtailorSource(Source):
         seen: set[str] = set()
         for match in _JOB_LINK_RE.finditer(listing):
             job_url = match.group(1)
-            if job_url in seen:
+            job_id = match.group(2)
+            if job_id in seen:
                 continue
-            seen.add(job_url)
+            seen.add(job_id)
+            if len(seen) > _MAX_DETAIL_FETCHES:
+                break
             detail = await ctx.get_text(job_url)
             posting = _extract_job_posting(detail)
             if posting is None:
@@ -89,6 +94,8 @@ class TeamtailorSource(Source):
         canonical_url = str((raw.detail or {}).get("url") or self.board_url(ref))
 
         description_html = job.get("description")
+        if isinstance(description_html, str):
+            description_html = html.unescape(description_html)
         description_text = html_to_text(description_html)
 
         location_raw = _build_location(job.get("jobLocation"))
@@ -140,12 +147,24 @@ class TeamtailorSource(Source):
         )
 
 
-def _extract_job_posting(html: str) -> dict[str, Any] | None:
-    for match in _LD_JSON_RE.finditer(html):
+def _is_job_posting(value: Any) -> TypeGuard[dict[str, Any]]:
+    return isinstance(value, dict) and value.get("@type") == "JobPosting"
+
+
+def _extract_job_posting(page_html: str) -> dict[str, Any] | None:
+    for match in _LD_JSON_RE.finditer(page_html):
         try:
             data = json.loads(match.group(1))
         except json.JSONDecodeError:
             continue
-        if isinstance(data, dict) and data.get("@type") == "JobPosting":
-            return data
+        candidates: list[Any]
+        if isinstance(data, list):
+            candidates = data
+        elif isinstance(data, dict) and isinstance(data.get("@graph"), list):
+            candidates = data["@graph"]
+        else:
+            candidates = [data]
+        for candidate in candidates:
+            if _is_job_posting(candidate):
+                return candidate
     return None

@@ -49,7 +49,7 @@ class Board(Base):
     token: Mapped[str] = mapped_column(String, index=True)
     company: Mapped[str | None] = mapped_column(String, nullable=True)
     tier: Mapped[str | None] = mapped_column(String, nullable=True)
-    tags: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     board_url: Mapped[str | None] = mapped_column(String, nullable=True)
     first_seen: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     last_polled: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -140,6 +140,10 @@ class Score(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     job_uid: Mapped[str] = mapped_column(ForeignKey("jobs.job_uid"), index=True)
+    # NOTE: scale is model-specific — "prefilter:*" rows store 0-1 (embedding cosine),
+    # "llm:*" rows store 0-100. Consumers MUST filter by `model` before reading/sorting
+    # this column so the two scales are never compared. (See web/app.py, which scopes to
+    # "llm:%".)
     fit_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     matched: Mapped[list[str]] = mapped_column(JSON, default=list)
     missing: Mapped[list[str]] = mapped_column(JSON, default=list)
