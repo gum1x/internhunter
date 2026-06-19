@@ -82,6 +82,29 @@ async def test_discover_from_jsonld(fake_fetch_context: Any) -> None:
     assert ("greenhouse", "acme") in {(d.ats, d.token) for d in dets}
 
 
+def test_extract_jobposting_handles_many_unclosed_scripts() -> None:
+    import time
+
+    # Hostile page: thousands of unclosed <script tags used to be O(n^2) under the
+    # old regex extractor. BeautifulSoup parses it in linear time.
+    hostile = "<script type=\"application/ld+json\">" * 20000 + "x" * 280_000
+    start = time.perf_counter()
+    urls = extract_jobposting_urls(hostile)
+    elapsed = time.perf_counter() - start
+    assert elapsed < 2.0
+    assert urls == []
+
+
+def test_extract_jobposting_handles_deep_nesting() -> None:
+    # Attacker JSON-LD nested far deeper than the walk depth limit must not crash.
+    payload: Any = {"@type": "JobPosting", "url": "https://jobs.lever.co/acme/1"}
+    for _ in range(5000):
+        payload = {"a": payload}
+    html = f'<script type="application/ld+json">{json.dumps(payload)}</script>'
+    # No RecursionError; the URL is below the depth limit so it is not surfaced.
+    assert extract_jobposting_urls(html) == []
+
+
 # --- internship_lists alternate keys (A2) ---
 def test_entry_to_job_alternate_keys() -> None:
     entry = {

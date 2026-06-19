@@ -61,11 +61,31 @@ def test_spf_dmarc_small_positive() -> None:
     assert boosted == base + 5
 
 
-def test_pgp_confirmed_adds_and_promotes() -> None:
-    # pgp alone is a strong HTTPS signal (+22); with a corpus vote it reaches verified.
+def test_pgp_confirmed_single_vote_is_additive_only() -> None:
+    # A single pattern vote is too weak to verify on PGP alone: only the +22 bump applies.
     score, label = score_email(EmailSignals(pattern_votes=1, pgp_confirmed=True))
+    assert score == 15 + 22
+    assert label != "verified"
+
+
+def test_pgp_confirmed_promotes_with_two_votes() -> None:
+    # A 2+ pattern agreement plus an owner-verified key reaches verified.
+    score, label = score_email(EmailSignals(pattern_votes=2, pgp_confirmed=True))
     assert score >= 85
     assert label == "verified"
+
+
+def test_pgp_confirmed_promotes_with_scraped() -> None:
+    score, label = score_email(EmailSignals(scraped=True, pgp_confirmed=True))
+    assert score >= 85
+    assert label == "verified"
+
+
+def test_smtp_valid_unknown_catch_all_no_bonus() -> None:
+    # catch_all unknown (None) must NOT grant the non-catch-all SMTP bonus.
+    base = score_email(EmailSignals(pattern_votes=2, smtp_valid=True, catch_all=None))[0]
+    known = score_email(EmailSignals(pattern_votes=2, smtp_valid=True, catch_all=False))[0]
+    assert known == base + 25
 
 
 def test_catch_all_none_is_no_penalty() -> None:

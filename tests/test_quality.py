@@ -86,3 +86,17 @@ def test_days_open_computed() -> None:
     now = datetime.now(UTC)
     job = _job(posted_at=now - timedelta(days=30), last_seen_at=now)
     assert days_open(job, now=now) == 30
+
+
+def test_future_posted_at_does_not_suppress_ghost_window() -> None:
+    # A future posted_at must NOT zero-out days_open; the listing has really been open
+    # since first_seen_at, so the ghost-duration signal should still fire.
+    now = datetime.now(UTC)
+    job = _job(
+        posted_at=now + timedelta(days=10),
+        first_seen_at=now - timedelta(days=120),
+        last_seen_at=now,
+    )
+    assert days_open(job, now=now) == 120
+    r = classify_quality(job, now=now)
+    assert "ghost_duration" in r.flags

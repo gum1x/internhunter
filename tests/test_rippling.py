@@ -51,3 +51,18 @@ async def test_rippling_poll_yields_normalized_jobs(fake_fetch_context: Any) -> 
     assert senior.is_internship is False
     assert senior.internship_kind is None
     assert senior.is_remote is True
+
+
+@pytest.mark.asyncio
+async def test_rippling_poll_non_list_response_yields_empty(fake_fetch_context: Any) -> None:
+    from internhunter.sources.tier_b.rippling import RipplingSource
+
+    source = RipplingSource()
+    ref = BoardRef(ats="rippling", token="acme", company="Acme")
+    fake_fetch_context.responses[source.board_url(ref)] = httpx.Response(
+        200, json={"error": "boom"}
+    )
+
+    jobs = await source.poll(ref, fake_fetch_context)
+
+    assert jobs == []

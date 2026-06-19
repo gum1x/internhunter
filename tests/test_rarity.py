@@ -27,10 +27,14 @@ def test_freshness_none_is_neutral() -> None:
     assert freshness_score(None, now) == 0.3
 
 
-def test_freshness_future_clamps_to_one() -> None:
+def test_freshness_future_is_neutral_not_max() -> None:
+    # A future post date is suspicious; it must not earn max freshness (which would
+    # let a low-quality source post-date a listing to the top of the ranking).
     now = datetime(2026, 1, 1)
     posted = now + timedelta(days=5)
-    assert freshness_score(posted, now) == 1.0
+    score = freshness_score(posted, now)
+    assert score < 1.0
+    assert abs(score - 0.3) < 1e-9
 
 
 def test_rarity_in_unit_interval() -> None:

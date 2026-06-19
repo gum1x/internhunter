@@ -92,7 +92,7 @@ def score_email(signals: EmailSignals) -> tuple[float, str]:
         score += 20.0
     if signals.holehe_confirmed:
         score += 18.0
-    if signals.smtp_valid and not signals.catch_all:
+    if signals.smtp_valid and signals.catch_all is False:
         score += 25.0
 
     # A verified key on keys.openpgp.org proves the mailbox is real and owner-controlled
@@ -115,9 +115,11 @@ def score_email(signals: EmailSignals) -> tuple[float, str]:
             score = max(score, 88.0)
 
     # An owner-verified PGP key is near-proof the address is real -> promote to "verified"
-    # whenever any corpus/source signal already backs the local-part.
+    # whenever a corpus/source signal already backs the local-part. A single pattern vote
+    # is too weak to verify on its own (it keeps only the +22 additive bump above); require
+    # a 2+ pattern agreement, a scraped hit, or a GitHub commit for the verified floor.
     if signals.pgp_confirmed and (
-        signals.pattern_votes >= 1 or signals.scraped or signals.github
+        signals.pattern_votes >= 2 or signals.scraped or signals.github
     ):
         score = max(score, 85.0)
 

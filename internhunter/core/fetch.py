@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import ipaddress
 import json
+import socket
 import time
 import urllib.robotparser
 from collections.abc import AsyncIterator
@@ -27,6 +29,93 @@ from tenacity import (
 from internhunter.config.settings import Settings, get_settings
 
 _RETRY_STATUS = {403, 429, 500, 502, 503, 504}
+
+# Headers that describe the wire encoding of the original body. They must be dropped when
+# we synthesize a 200 from the (already-decoded) cached body on a 304, or httpx will try
+# to re-decode plain bytes and raise DecodingError.
+_HOP_HEADERS = frozenset({"content-encoding", "content-length", "transfer-encoding"})
+
+
+class SSRFError(httpx.HTTPError):
+    """Raised when a request target resolves to a non-public / disallowed address."""
+
+
+def _ip_is_blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    return (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    )
+
+
+async def _host_resolves_to_blocked(host: str, port: int) -> bool:
+    """True if ``host`` is (or resolves to) a private/loopback/link-local/reserved IP.
+
+    IP literals are checked directly. Hostnames are resolved via getaddrinfo and ALL
+    returned addresses are checked (a single internal answer is enough to block). A
+    resolution failure returns False — the real connection will then fail on its own,
+    and we avoid turning transient DNS errors into security false-positives.
+    """
+    try:
+        return _ip_is_blocked(ipaddress.ip_address(host))
+    except ValueError:
+        pass
+    try:
+        infos = await asyncio.get_running_loop().getaddrinfo(
+            host, port or None, type=socket.SOCK_STREAM
+        )
+    except OSError:
+        return False
+    for info in infos:
+        addr = info[4][0]
+        try:
+            if _ip_is_blocked(ipaddress.ip_address(addr)):
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+class _GuardedTransport(httpx.AsyncBaseTransport):
+    """SSRF egress guard: blocks non-http(s) schemes and requests to internal addresses.
+
+    Operator-configured hosts (e.g. self-hosted SearXNG, a local llama.cpp) are exempt via
+    ``trusted_hosts`` so legitimate private targets keep working; everything else (URLs
+    derived from crawled/untrusted content, and every redirect hop) is validated.
+    """
+
+    def __init__(self, inner: httpx.AsyncBaseTransport, trusted_hosts: set[str]) -> None:
+        self._inner = inner
+        self._trusted = trusted_hosts
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        scheme = request.url.scheme.lower()
+        if scheme not in ("http", "https"):
+            raise SSRFError(f"blocked non-http(s) scheme: {scheme!r}")
+        host = (request.url.host or "").lower()
+        if host not in self._trusted:
+            port = request.url.port or (443 if scheme == "https" else 80)
+            if await _host_resolves_to_blocked(host, port):
+                raise SSRFError(f"blocked request to internal address: {host!r}")
+        return await self._inner.handle_async_request(request)
+
+    async def aclose(self) -> None:
+        await self._inner.aclose()
+
+
+def _trusted_hosts(settings: Settings) -> set[str]:
+    """Operator-configured hosts that are allowed to be internal (SSRF allowlist)."""
+    hosts: set[str] = set()
+    for raw in (settings.searxng_url, settings.llm_base_url):
+        if not raw:
+            continue
+        parsed = urlsplit(raw if "://" in raw else "//" + raw)
+        if parsed.hostname:
+            hosts.add(parsed.hostname.lower())
+    return hosts
 
 
 def _is_retryable(exc: BaseException) -> bool:
@@ -218,12 +307,26 @@ class FetchContext:
 
         response = await _send()
 
+        max_bytes = self.settings.max_response_bytes
+        if max_bytes and len(response.content) > max_bytes:
+            # Note: the body is already in memory here (non-streaming client); the cap
+            # still prevents oversized responses from reaching the cache, parsers, and
+            # regexes downstream — where the real amplification (ReDoS, disk-fill) lives.
+            raise httpx.HTTPError(
+                f"response from {url} exceeds {max_bytes}-byte cap"
+            )
+
         if response.status_code == 304 and cached is not None:
+            safe_headers = {
+                k: v
+                for k, v in response.headers.items()
+                if k.lower() not in _HOP_HEADERS
+            }
             return httpx.Response(
                 status_code=200,
                 content=cached.body,
                 request=response.request,
-                headers=response.headers,
+                headers=safe_headers,
             )
 
         if use_cache and method == "GET" and response.status_code == 200:
@@ -300,10 +403,15 @@ class FetchContext:
 async def build_fetch_context(settings: Settings | None = None) -> AsyncIterator[FetchContext]:
     resolved = settings or get_settings()
     headers = {"User-Agent": resolved.default_user_agent}
+    transport = _GuardedTransport(
+        httpx.AsyncHTTPTransport(proxy=resolved.http_proxy or None),
+        _trusted_hosts(resolved),
+    )
     async with httpx.AsyncClient(
         timeout=resolved.request_timeout,
         headers=headers,
         follow_redirects=True,
+        transport=transport,
     ) as client:
         browser: BrowserFactory | None = None
         if resolved.enable_browser:

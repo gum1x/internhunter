@@ -3,7 +3,6 @@ from __future__ import annotations
 import html
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
-from typing import Any
 
 from internhunter.core.fetch import FetchContext
 from internhunter.core.internship_filter import classify_internship
@@ -32,7 +31,8 @@ class GreenhouseSource(Source):
         return f"https://boards-api.greenhouse.io/v1/boards/{ref.token}/jobs?content=true"
 
     async def fetch(self, ref: BoardRef, ctx: FetchContext) -> AsyncIterator[RawPosting]:
-        payload: dict[str, Any] = await ctx.get_json(self.board_url(ref))
+        payload = await ctx.get_json(self.board_url(ref))
+        payload = payload if isinstance(payload, dict) else {}
         for job in payload.get("jobs", []):
             yield RawPosting(raw=job)
 

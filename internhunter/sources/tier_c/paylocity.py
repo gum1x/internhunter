@@ -21,7 +21,7 @@ from internhunter.core.normalize import (
 from internhunter.sources.base import BoardRef, RawPosting, Source, Tier, register_source
 
 _BASE_URL = "https://recruiting.paylocity.com"
-_PAGE_DATA_RE = re.compile(r"window\.pageData\s*=\s*(\{.*?\});", re.DOTALL)
+_PAGE_DATA_RE = re.compile(r"window\.pageData\s*=\s*(\{)")
 
 
 def _board_guid(token: str) -> str:
@@ -44,9 +44,11 @@ class PaylocitySource(Source):
             ctx.logger.debug("paylocity pageData not found for {}", ref.token)
             return
         try:
-            data = json.loads(match.group(1))
+            data, _ = json.JSONDecoder().raw_decode(html, match.start(1))
         except json.JSONDecodeError:
             ctx.logger.debug("paylocity pageData parse failed for {}", ref.token)
+            return
+        if not isinstance(data, dict):
             return
         for job in data.get("Jobs") or []:
             yield RawPosting(raw=job)

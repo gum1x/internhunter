@@ -15,6 +15,9 @@ _NON_COMPANY = {
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
+# Bound DNS lookups so a slow/hostile authoritative nameserver can't stall a worker.
+_DNS_TIMEOUT = 5.0
+
 
 def _strip_www(domain: str) -> str:
     return domain[4:] if domain.startswith("www.") else domain
@@ -58,7 +61,7 @@ def mx_host(domain: str) -> str | None:
     try:
         import dns.resolver
 
-        answers = dns.resolver.resolve(domain, "MX")
+        answers = dns.resolver.resolve(domain, "MX", lifetime=_DNS_TIMEOUT)
         ranked = sorted(answers, key=lambda r: r.preference)
         return str(ranked[0].exchange).rstrip(".").lower() if ranked else None
     except Exception:
@@ -98,7 +101,7 @@ def _spf_provider(domain: str) -> str | None:
     try:
         import dns.resolver
 
-        for rr in dns.resolver.resolve(domain, "TXT"):
+        for rr in dns.resolver.resolve(domain, "TXT", lifetime=_DNS_TIMEOUT):
             txt = "".join(
                 s.decode("utf-8", "ignore") if isinstance(s, bytes) else str(s)
                 for s in rr.strings
@@ -115,7 +118,7 @@ def _autodiscover_provider(domain: str) -> str | None:
     try:
         import dns.resolver
 
-        ans = dns.resolver.resolve(f"autodiscover.{domain}", "CNAME")
+        ans = dns.resolver.resolve(f"autodiscover.{domain}", "CNAME", lifetime=_DNS_TIMEOUT)
         target = str(ans[0].target).rstrip(".").lower()
         if "outlook.com" in target:
             return "microsoft"

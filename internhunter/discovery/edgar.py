@@ -60,7 +60,9 @@ def _adsh_from_id(hit_id: str) -> str | None:
     # "0001234567-25-000123:primary_doc.xml" -> "000123456725000123"
     base = hit_id.split(":", 1)[0]
     digits = base.replace("-", "")
-    return digits or None
+    if len(digits) != 18 or not digits.isdigit():
+        return None
+    return digits
 
 
 async def discover_from_edgar(
@@ -112,7 +114,7 @@ async def discover_from_edgar(
             continue
         try:
             xml = await ctx.get_text(
-                _ARCHIVE.format(cik=str(cik).lstrip("0") or cik, adsh=adsh),
+                _ARCHIVE.format(cik=str(cik).lstrip("0").zfill(10), adsh=adsh),
                 headers=headers,
                 respect_robots=False,
             )

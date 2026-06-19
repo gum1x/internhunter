@@ -44,8 +44,14 @@ def _walk_entities(entities: Any, acc: list[str]) -> None:
         _walk_entities(ent.get("entities"), acc)
 
 
-async def rdap_emails(ctx: FetchContext, domain: str) -> list[str]:
+async def rdap_emails(
+    ctx: FetchContext, domain: str, filter_domain: str | None = None
+) -> list[str]:
     """Registration-contact emails for ``domain`` via RDAP. Deduped, lowercased.
+
+    RDAP also returns registrar/abuse/privacy contacts off the target domain; pass
+    ``filter_domain`` to keep only ``@filter_domain`` addresses (consistent with the
+    site/security.txt harvesters) so the company corpus isn't polluted.
 
     Returns an empty list on any failure (network, non-JSON, redacted)."""
     try:
@@ -56,9 +62,12 @@ async def rdap_emails(ctx: FetchContext, domain: str) -> list[str]:
         return []
     found: list[str] = []
     _walk_entities(data.get("entities"), found)
+    suffix = "@" + filter_domain.lower() if filter_domain else None
     seen: set[str] = set()
     deduped: list[str] = []
     for email in found:
+        if suffix and not email.endswith(suffix):
+            continue
         if email not in seen:
             seen.add(email)
             deduped.append(email)

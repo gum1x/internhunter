@@ -87,6 +87,27 @@ async def test_non_intern_not_classified(
     assert senior.is_remote is True
 
 
+@pytest.mark.asyncio
+async def test_poll_paginates_without_total_found(
+    fake_fetch_context: FetchContext, board_ref: BoardRef
+) -> None:
+    # `totalFound` is missing — pagination must continue while pages are full.
+    base = f"https://api.smartrecruiters.com/v1/companies/{_TOKEN}/postings"
+    page0 = {"content": [{"id": f"p0-{i}", "name": "Engineer"} for i in range(100)]}
+    page1 = {"content": [{"id": f"p1-{i}", "name": "Engineer"} for i in range(40)]}
+    fake_fetch_context.responses[f"{base}?limit=100&offset=0"] = httpx.Response(
+        200, json=page0
+    )
+    fake_fetch_context.responses[f"{base}?limit=100&offset=100"] = httpx.Response(
+        200, json=page1
+    )
+    source = SmartRecruitersSource()
+
+    jobs = await source.poll(board_ref, fake_fetch_context)
+
+    assert len(jobs) == 140
+
+
 def test_normalize_directly_classifies_intern(board_ref: BoardRef) -> None:
     from internhunter.sources.base import RawPosting
 

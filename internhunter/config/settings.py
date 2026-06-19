@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     per_host_concurrency: int = 4
     default_user_agent: str = "InternHunter/0.1 (+https://github.com/internhunter)"
     request_timeout: float = 30.0
+    # Hard cap on a single response body. Bounds memory, the on-disk cache, and the
+    # downstream parsers/regexes against hostile oversized responses (~25 MB default).
+    max_response_bytes: int = 25_000_000
     cache_dir: Path = Path(".cache")
     retry_max_attempts: int = 4
     embed_model: str = "all-MiniLM-L6-v2"

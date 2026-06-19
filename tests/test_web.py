@@ -82,6 +82,44 @@ def test_export_csv_sanitizes_formula_injection(tmp_path: Path) -> None:
     assert ",=HYPERLINK" not in response.text
 
 
+def test_export_csv_sanitizes_leading_newline_formula(tmp_path: Path) -> None:
+    init_db(db_path=tmp_path / "nl.db")
+    session = get_session()
+    job = _make_job(uid="x2", title="\n=cmd|'/c calc'!A1", is_internship=True)
+    session.add(job)
+    session.commit()
+    session.close()
+    with TestClient(create_app()) as test_client:
+        response = test_client.get("/export.csv")
+    assert response.status_code == 200
+    assert "\"'\n=cmd" in response.text  # leading newline neutralized with a quote
+
+
+def test_table_neutralizes_javascript_url(tmp_path: Path) -> None:
+    init_db(db_path=tmp_path / "xss.db")
+    session = get_session()
+    job = _make_job(uid="j1", title="Evil Intern", is_internship=True)
+    job.canonical_url = "javascript:alert(1)"
+    session.add(job)
+    session.commit()
+    session.close()
+    with TestClient(create_app()) as test_client:
+        body = test_client.get("/jobs").text
+    assert "javascript:alert(1)" not in body
+    assert 'href="#"' in body
+
+
+def test_csrf_rejects_cross_origin_post(client: TestClient) -> None:
+    # Same-origin and Origin-less POSTs pass the guard (reach the handler -> 404 for an
+    # unknown uid); a cross-origin Origin is rejected before the handler runs.
+    same = client.post("/jobs/nope/track", headers={"Origin": "http://testserver"})
+    assert same.status_code == 404
+    none = client.post("/jobs/nope/track")
+    assert none.status_code == 404
+    blocked = client.post("/jobs/nope/track", headers={"Origin": "http://evil.example"})
+    assert blocked.status_code == 403
+
+
 def test_export_csv_not_truncated(tmp_path: Path) -> None:
     init_db(db_path=tmp_path / "big.db")
     session = get_session()
