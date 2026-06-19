@@ -52,6 +52,10 @@ _STRONG_CHANNEL_SOURCES = {
     "gravatar", "github", "github_social", "github_profile", "email_match", "keybase",
 }
 
+# Cap keyless .patch fan-out per company so a company with many GitHub people can't
+# trigger an unbounded burst of outbound fetches.
+_MAX_PATCH_BACKFILL = 5
+
 
 def _corroboration_count(person: DiscoveredPerson) -> int:
     """How many identity-linked channels back this person (self-declared/verified)."""
@@ -221,6 +225,7 @@ async def _verify_email(
     settings: Settings,
     provider: str = "unknown",
     person: DiscoveredPerson | None = None,
+    domain_trusted: bool = True,
 ) -> None:
     """Layer HTTPS verification (M365 mailbox check, GitHub, Gravatar, holehe) onto an
     email — including scraped/published addresses (which can now reach 'verified')."""
@@ -280,7 +285,8 @@ async def _verify_email(
         pass
 
     # Real per-mailbox confirmation for Microsoft 365 domains (the strongest HTTPS signal).
-    if provider == "microsoft" and settings.m365_verify:
+    # Skipped on a slug-guessed domain so a wrong tenant can't be probed by name.
+    if provider == "microsoft" and settings.m365_verify and domain_trusted:
         try:
             from internhunter.contacts.email.verify_m365 import m365_confirms
 
@@ -369,6 +375,10 @@ async def _enrich_company(
         resolve_domain, target.name, target.company_slug, target.domain
     )
     domain = resolved_domain.domain
+    # Only the slug fallback (conf 0.3) is an unverified guess; job_metadata (1.0) and
+    # mx_validated (0.7) are backed by real signals. Gate keyless name brute-forcing
+    # (M365 mailbox probes) on a real domain so a wrong slug can't spray a stranger's tenant.
+    domain_trusted = resolved_domain.confidence >= 0.7
     headcount_band = _headcount_band(target.job_count)
 
     provider = "unknown"
@@ -394,7 +404,7 @@ async def _enrich_company(
         try:
             from internhunter.contacts.email.rdap import rdap_emails
 
-            scraped_emails += await rdap_emails(ctx, domain)
+            scraped_emails += await rdap_emails(ctx, domain, filter_domain=domain)
         except Exception:
             pass
         try:
@@ -419,18 +429,24 @@ async def _enrich_company(
                 )
             except Exception:
                 pass
-    # Backfill a real email for GitHub-known people via a public commit .patch (bounded).
-    for person in people:
-        if person.known_email or not person.github_login:
-            continue
-        try:
-            patch_email = await harvest_github_login_email(
-                ctx, person.github_login, domain
-            )
-        except Exception:
-            patch_email = None
-        if patch_email:
-            person.known_email = patch_email
+        # Backfill a real email for GitHub-known people via a public commit .patch. Only
+        # with a real domain (the domain filters off-domain personal addresses) and bounded
+        # so a company with many GitHub people can't trigger unbounded keyless fan-out.
+        backfill_attempts = 0
+        for person in people:
+            if person.known_email or not person.github_login:
+                continue
+            if backfill_attempts >= _MAX_PATCH_BACKFILL:
+                break
+            backfill_attempts += 1
+            try:
+                patch_email = await harvest_github_login_email(
+                    ctx, person.github_login, domain
+                )
+            except Exception:
+                patch_email = None
+            if patch_email:
+                person.known_email = patch_email
     for person in people:
         if not person.known_email:
             continue
@@ -485,7 +501,12 @@ async def _enrich_company(
             # keyless mailbox check first — a confirmed hit is a *verified* address, no
             # corpus needed. Falls back to corpus/pattern inference otherwise.
             m365_email: str | None = None
-            if provider == "microsoft" and settings.m365_verify and person.full_name:
+            if (
+                provider == "microsoft"
+                and settings.m365_verify
+                and person.full_name
+                and domain_trusted
+            ):
                 try:
                     from internhunter.contacts.email.verify_m365 import m365_resolve
 
@@ -517,7 +538,9 @@ async def _enrich_company(
                     locked_template=locked_template,
                 )
                 if result.email and settings.verify_emails:
-                    await _verify_email(ctx, result, settings, provider, person)
+                    await _verify_email(
+                        ctx, result, settings, provider, person, domain_trusted
+                    )
         contactability = (result.confidence / 100.0) if (result and result.email) else 0.1
         rank = role_priority(person.role_category) * (0.4 + 0.6 * contactability)
         scored.append((rank, person, result))

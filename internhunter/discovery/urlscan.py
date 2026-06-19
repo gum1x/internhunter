@@ -5,7 +5,7 @@ from typing import Any
 from urllib.parse import urlencode, urlsplit
 
 from internhunter.core.fetch import FetchContext
-from internhunter.discovery.fingerprint import Detection, detect_from_url
+from internhunter.discovery.fingerprint import _TOKEN_RE, Detection, detect_from_url
 
 _SEARCH_BASE = "https://urlscan.io/api/v1/search/"
 
@@ -47,11 +47,13 @@ def _workday_token(url: str) -> str | None:
     if len(labels) < 4:
         return None
     tenant = labels[0]
-    if not tenant:
+    if not _TOKEN_RE.match(tenant):
         return None
     for segment in (s for s in parts.path.split("/") if s):
         if _LOCALE_RE.match(segment) or segment.lower() == "wday":
             continue
+        if not _TOKEN_RE.match(segment):
+            return None
         return f"{tenant}/{segment}"
     return None
 

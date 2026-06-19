@@ -41,6 +41,8 @@ class RipplingSource(Source):
 
     async def fetch(self, ref: BoardRef, ctx: FetchContext) -> AsyncIterator[RawPosting]:
         payload = await ctx.get_json(self.board_url(ref))
+        if not isinstance(payload, list):
+            return
         for job in payload:
             yield RawPosting(raw=job)
 

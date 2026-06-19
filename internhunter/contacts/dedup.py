@@ -35,15 +35,23 @@ def _conflict(a: dict[str, Any], b: dict[str, Any]) -> bool:
     return any(a.get(t) and b.get(t) and a[t] != b[t] for t in _SINGULAR)
 
 
+def _has_identifier(x: dict[str, Any]) -> bool:
+    """A strong id or a verified channel — any signal of identity beyond a bare name."""
+    return bool(x.get("gh") or x.get("li") or x.get("em") or x["_verified"])
+
+
 def _shares(a: dict[str, Any], b: dict[str, Any]) -> bool:
     if any(a.get(t) and b.get(t) and a[t] == b[t] for t in _SINGULAR):
         return True
     if a["_verified"] & b["_verified"]:
         return True
-    # Same name at the same company merges — but ONLY because the caller has already
-    # ruled out _conflict() (different github_login / email / linkedin), so two distinct
-    # same-named people with their own strong ids never fuse.
-    return bool(a["_name"] and a["_name"] == b["_name"])
+    # Same name at the same company can merge — but absence of a *conflict* is not proof of
+    # sameness when neither side carries any identifier. Two name-only "Jane Doe" records
+    # could be two different people, so require at least one side to have a strong/verified
+    # id corroborating that this is the same person (the other side's data is then folded in).
+    if a["_name"] and a["_name"] == b["_name"]:
+        return _has_identifier(a) or _has_identifier(b)
+    return False
 
 
 def _merge_into(base: DiscoveredPerson, other: DiscoveredPerson) -> None:

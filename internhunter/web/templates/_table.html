@@ -41,7 +41,7 @@
         <span class="fit fit-{{ (s.fit_score // 25)|int }}" title="{{ s.rationale or '' }}{% if s.matched %} | matches: {{ s.matched|join(', ') }}{% endif %}{% if s.missing %} | gaps: {{ s.missing|join(', ') }}{% endif %}">{{ "%.0f"|format(s.fit_score) }}</span>
         {% endif %}
       </td>
-      <td><a href="{{ job.canonical_url }}" target="_blank" rel="noopener">{{ job.title }}</a></td>
+      <td><a href="{{ job.canonical_url | safe_url }}" target="_blank" rel="noopener">{{ job.title }}</a></td>
       <td>{{ job.company or "" }}</td>
       <td>{{ job.location_normalized or "" }}</td>
       <td>{% if job.internship_kind %}<span class="badge tone-muted">{{ job.internship_kind }}</span>{% endif %}</td>

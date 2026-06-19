@@ -11,8 +11,9 @@ from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -258,7 +259,22 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
 
 
 def _csv_safe(v: str) -> str:
-    return "'" + v if v and v[0] in "=+-@\t\r" else v
+    return "'" + v if v and v[0] in "=+-@\t\r\n" else v
+
+
+def _safe_url(u: str | None) -> str:
+    """Neutralize crawled URLs before they reach an href — Jinja autoescaping does not
+    stop `javascript:`/`data:` schemes. Only http(s) URLs pass through; else `#`."""
+    return u if u and urlsplit(u).scheme in ("http", "https") else "#"
+
+
+def _same_origin(request: Request) -> None:
+    """CSRF guard for state-changing POSTs: when a cross-site request carries an Origin
+    header whose host differs from ours, reject it (403). Same-origin requests and
+    non-browser callers (no Origin) pass through."""
+    origin = request.headers.get("origin")
+    if origin and urlsplit(origin).netloc != request.url.netloc:
+        raise HTTPException(status_code=403, detail="cross-origin request rejected")
 
 
 def _ats_options() -> list[str]:
@@ -482,6 +498,7 @@ def create_app() -> FastAPI:
     app = FastAPI()
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+    templates.env.filters["safe_url"] = _safe_url
     settings = get_settings()
 
     if settings.auth_user and settings.auth_pass:
@@ -518,7 +535,7 @@ def create_app() -> FastAPI:
         return templates.TemplateResponse(request, "index.html", ctx)
 
     @app.post("/search", response_class=HTMLResponse)
-    def search() -> HTMLResponse:
+    def search(_: None = Depends(_same_origin)) -> HTMLResponse:
         _start_search()
         return HTMLResponse(_search_status_html())
 
@@ -687,7 +704,7 @@ def create_app() -> FastAPI:
         )
 
     @app.post("/jobs/{job_uid}/track", response_class=HTMLResponse)
-    def track_job(job_uid: str) -> HTMLResponse:
+    def track_job(job_uid: str, _: None = Depends(_same_origin)) -> HTMLResponse:
         """Idempotently add a job to the tracker, snapshotting its display fields. The
         contact is fetched live from the contacts table at render time (not snapshotted)."""
         session = get_session()
@@ -722,7 +739,9 @@ def create_app() -> FastAPI:
         return HTMLResponse(_TRACKED_BADGE)
 
     @app.post("/tracker/{app_id}/update", response_class=HTMLResponse)
-    async def tracker_update(request: Request, app_id: int) -> HTMLResponse:
+    async def tracker_update(
+        request: Request, app_id: int, _: None = Depends(_same_origin)
+    ) -> HTMLResponse:
         """Inline-edit one field of a tracker row. Keys on field PRESENCE in the raw form
         (HTMX posts only the changed input) so emptying an input clears it — FastAPI's
         Form() collapses empty-present to absent, which would make clearing impossible."""
@@ -759,7 +778,7 @@ def create_app() -> FastAPI:
         return templates.TemplateResponse(request, "_tracker_row.html", ctx)
 
     @app.post("/tracker/{app_id}/delete", response_class=HTMLResponse)
-    def tracker_delete(app_id: int) -> HTMLResponse:
+    def tracker_delete(app_id: int, _: None = Depends(_same_origin)) -> HTMLResponse:
         session = get_session()
         try:
             a = session.get(Application, app_id)

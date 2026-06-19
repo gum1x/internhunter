@@ -9,12 +9,15 @@ import os
 # catch-all probe is the one piece that does need SMTP, so it reuses verify_smtp and
 # degrades to None when unavailable.
 
+# Bound DNS lookups so a slow/hostile authoritative nameserver can't stall a worker.
+_DNS_TIMEOUT = 5.0
+
 
 def _txt_records(name: str) -> list[str]:
     try:
         import dns.resolver
 
-        answers = dns.resolver.resolve(name, "TXT")
+        answers = dns.resolver.resolve(name, "TXT", lifetime=_DNS_TIMEOUT)
     except Exception:
         return []
     out: list[str] = []
@@ -36,7 +39,7 @@ def mx_hosts(domain: str) -> list[str]:
     try:
         import dns.resolver
 
-        answers = dns.resolver.resolve(domain, "MX")
+        answers = dns.resolver.resolve(domain, "MX", lifetime=_DNS_TIMEOUT)
     except Exception:
         return []
     ranked = sorted(answers, key=lambda r: r.preference)

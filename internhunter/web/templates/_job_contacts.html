@@ -7,7 +7,7 @@
     {% if c.confidence is not none %}
     <span class="badge badge-{{ c.label }}">{{ c.label }} {{ "%.0f"|format(c.confidence) }}</span>
     {% endif %}
-    {% if c.linkedin_url %}<a href="{{ c.linkedin_url }}" target="_blank" rel="noopener">in</a>{% endif %}
+    {% if c.linkedin_url %}<a href="{{ c.linkedin_url | safe_url }}" target="_blank" rel="noopener">in</a>{% endif %}
     {% for ch in channels.get(c.id, []) %}
     <a class="chip badge-{{ ch.label }}" href="{{ ch.value if ch.value.startswith('http') else '#' }}" target="_blank" rel="noopener">{{ ch.kind }}</a>
     {% endfor %}

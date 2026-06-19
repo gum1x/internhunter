@@ -30,6 +30,7 @@ class GemSource(Source):
 
     async def fetch(self, ref: BoardRef, ctx: FetchContext) -> AsyncIterator[RawPosting]:
         payload = await ctx.get_json(self.board_url(ref))
+        payload = payload if isinstance(payload, dict) else {}
         for job in payload.get("jobs", []):
             yield RawPosting(raw=job)
 

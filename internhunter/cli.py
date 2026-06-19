@@ -32,10 +32,21 @@ def _cmd_poll(args: argparse.Namespace) -> None:
             print(f"  ! {result.ref.ats}/{result.ref.token}: {result.error}")
 
 
+_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+
+
 def _cmd_serve(args: argparse.Namespace) -> None:
     import uvicorn
 
+    from internhunter.config.settings import get_settings
     from internhunter.web.app import create_app
+
+    settings = get_settings()
+    if args.host not in _LOOPBACK_HOSTS and not (settings.auth_user and settings.auth_pass):
+        raise SystemExit(
+            f"refusing to bind non-loopback host {args.host!r} without auth: set "
+            "INTERNHUNTER_AUTH_USER and INTERNHUNTER_AUTH_PASS, or bind 127.0.0.1"
+        )
 
     uvicorn.run(create_app(), host=args.host, port=args.port)
 

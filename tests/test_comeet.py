@@ -69,3 +69,49 @@ async def test_comeet_poll_missing_data_yields_empty(fake_fetch_context: Any) ->
     jobs = await source.poll(ref, fake_fetch_context)
 
     assert jobs == []
+
+
+_TITLE_WITH_BRACKET = "Build arrays like x[1]; ship fast"
+_COMEET_HTML_BRACKET = (
+    "<html><body><script>"
+    'var COMPANY_POSITIONS_DATA = [{"name": '
+    f'"{_TITLE_WITH_BRACKET}", "uid": "AC.010", '
+    '"url_active_page": "https://www.comeet.com/jobs/x/1/a/AC.010", '
+    '"workplace_type": "Hybrid"}, '
+    '{"name": "Backend Engineer", "uid": "AC.011", '
+    '"url_active_page": "https://www.comeet.com/jobs/x/1/b/AC.011", '
+    '"workplace_type": "Remote"}];'
+    "</script></body></html>"
+)
+
+
+@pytest.mark.asyncio
+async def test_comeet_poll_handles_bracket_in_title(fake_fetch_context: Any) -> None:
+    # A position name containing `];` must not truncate the balanced JSON.
+    source = ComeetSource()
+    ref = BoardRef(ats="comeet", token="x/1")
+    fake_fetch_context.responses[source.board_url(ref)] = httpx.Response(
+        200, text=_COMEET_HTML_BRACKET
+    )
+
+    jobs = await source.poll(ref, fake_fetch_context)
+
+    assert len(jobs) == 2
+    assert jobs[0].title == _TITLE_WITH_BRACKET
+
+
+@pytest.mark.asyncio
+async def test_comeet_poll_workplace_type(fake_fetch_context: Any) -> None:
+    source = ComeetSource()
+    ref = BoardRef(ats="comeet", token="x/1")
+    fake_fetch_context.responses[source.board_url(ref)] = httpx.Response(
+        200, text=_COMEET_HTML_BRACKET
+    )
+
+    jobs = await source.poll(ref, fake_fetch_context)
+
+    hybrid = jobs[0]
+    assert hybrid.is_remote is True
+    assert hybrid.remote_scope == "hybrid"
+    remote = jobs[1]
+    assert remote.is_remote is True
