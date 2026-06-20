@@ -1,6 +1,6 @@
 # InternHunter
 
-Self-hosted internship discovery engine. It polls company ATS boards **directly** across 24 platforms in 3 tiers, grows its board registry automatically, ranks roles against your profile locally, **reads each posting to filter out spam/ghost/low-quality listings**, and **finds outreach contacts (recruiters, hiring managers) with verified emails** — surfacing rare/fresh internships that aggregators miss.
+Self-hosted internship discovery engine. It polls company ATS boards **directly** across 24 platforms in 3 tiers, grows its board registry automatically, ranks roles against your profile locally, **reads each posting to filter out spam/ghost/low-quality listings**, and **finds outreach contacts (recruiters, hiring managers) with verified emails**, surfacing rare/fresh internships that aggregators miss.
 
 No third-party job-board API. No paywall. Your machine, your data, the companies' own endpoints.
 
