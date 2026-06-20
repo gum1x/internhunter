@@ -298,15 +298,30 @@ class FetchContext:
     async def redirect_location(
         self, url: str, *, headers: dict[str, str] | None = None
     ) -> str | None:
-        """Single GET that does NOT follow redirects; returns the raw Location header
-        (None for a 2xx/4xx). Used to read a 3xx that itself carries data in its target."""
+        """Single GET that does NOT follow redirects; returns the raw Location header (None
+        for a definitive 2xx/4xx, e.g. a 404 = no resource). Retries/raises on transient
+        statuses (429/5xx) so callers can tell "absent" from "throttled". robots is
+        intentionally bypassed: only the 3xx Location carries the data we need."""
         host = _host_of(url)
         host_sem = await self.host_limiter.semaphore(host)
-        async with self.global_semaphore:
-            async with host_sem:
-                response = await self.client.get(
-                    url, headers=headers, follow_redirects=False
-                )
+
+        @retry(
+            retry=retry_if_exception(_is_retryable),
+            stop=stop_after_attempt(self.settings.retry_max_attempts),
+            wait=wait_exponential_jitter(initial=1.0, max=30.0),
+            reraise=True,
+        )
+        async def _send() -> httpx.Response:
+            async with self.global_semaphore:
+                async with host_sem:
+                    resp = await self.client.get(
+                        url, headers=headers, follow_redirects=False
+                    )
+            if resp.status_code in _RETRY_STATUS:
+                resp.raise_for_status()
+            return resp
+
+        response = await _send()
         if response.is_redirect:
             location = response.headers.get("location")
             return location if isinstance(location, str) else None
@@ -321,6 +336,7 @@ async def build_fetch_context(settings: Settings | None = None) -> AsyncIterator
         timeout=resolved.request_timeout,
         headers=headers,
         follow_redirects=True,
+        proxy=resolved.http_proxy or None,
     ) as client:
         browser: BrowserFactory | None = None
         if resolved.enable_browser:

@@ -60,7 +60,8 @@ def _cmd_discover(args: argparse.Namespace) -> None:
     if args.method == "greenhouse_frontier":
         from internhunter.discovery.greenhouse_frontier import run_greenhouse_frontier
 
-        frontier = run_greenhouse_frontier(window=args.limit or None)
+        # window unset -> None -> the crawler uses settings.greenhouse_frontier_window (1500).
+        frontier = run_greenhouse_frontier(window=args.limit)
         print(
             f"greenhouse frontier: probed {frontier.probed} ids, "
             f"resolved {frontier.resolved} jobs, "
@@ -130,11 +131,11 @@ def _cmd_discover(args: argparse.Namespace) -> None:
             if args.method == "yc":
                 from internhunter.discovery.yc import discover_from_yc
 
-                return await discover_from_yc(ctx, limit=args.limit)
+                return await discover_from_yc(ctx, limit=args.limit or 400)
             if args.method == "vc":
                 from internhunter.discovery.vc import discover_from_vc
 
-                return await discover_from_vc(ctx, limit=args.limit)
+                return await discover_from_vc(ctx, limit=args.limit or 400)
             from internhunter.discovery.common_crawl import discover_from_common_crawl
 
             ats = [a.strip() for a in args.ats.split(",") if a.strip()] if args.ats else None
@@ -328,21 +329,34 @@ def _cmd_ingest(args: argparse.Namespace) -> None:
         total_entries += entries
         total_jobs += jobs
         total_boards += boards
-    if args.source in ("oflc", "perm", "sbir"):
+    # SBIR is keyless so it joins "all"; oflc/perm need a --url, so they stay explicit-only.
+    disclosure_sources = [s for s in ("oflc", "perm", "sbir") if s == args.source]
+    if args.source == "all":
+        disclosure_sources = ["sbir"]
+    disclosure_rows = disclosure_leads = disclosure_companies = 0
+    for src in disclosure_sources:
         from internhunter.discovery.disclosure import run_ingest_disclosure
 
-        summary = run_ingest_disclosure(args.source, url=args.url)
+        summary = run_ingest_disclosure(src, url=args.url)
         print(
-            f"  {args.source}: {summary.rows} rows -> {summary.leads} new leads, "
+            f"  {src}: {summary.rows} rows -> {summary.leads} new leads, "
             f"{summary.companies} companies signaled"
         )
         for error in summary.errors[:5]:
             print(f"  ! {error}")
-        total_entries += summary.rows
+        disclosure_rows += summary.rows
+        disclosure_leads += summary.leads
+        disclosure_companies += summary.companies
+
     print(
         f"ingested {total_entries} entries -> "
         f"{total_jobs} jobs upserted, {total_boards} new boards added"
     )
+    if disclosure_rows:
+        print(
+            f"disclosure: {disclosure_rows} rows -> {disclosure_leads} leads, "
+            f"{disclosure_companies} companies signaled"
+        )
 
 
 def _cmd_registry(args: argparse.Namespace) -> None:
@@ -398,7 +412,9 @@ def main() -> None:
     discover.add_argument("--url", default=None)
     discover.add_argument("--ats", default=None)
     discover.add_argument("--months", type=int, default=6)
-    discover.add_argument("--limit", type=int, default=400)
+    # Unset by default: yc/vc fall back to 400; greenhouse_frontier falls back to the
+    # configured window (1500). An explicit --limit N overrides for the chosen method.
+    discover.add_argument("--limit", type=int, default=None)
 
     subparsers.add_parser("discover-all")
     reresolve = subparsers.add_parser("reresolve")

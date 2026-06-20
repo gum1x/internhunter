@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -23,6 +25,11 @@ _METHOD = "greenhouse_frontier"
 _SOURCE = GreenhouseSource()
 
 
+# A probe outcome: "ok" (resolved a live job), "miss" (definitively no live job at this id:
+# clean 404 / no redirect), or "error" (transient: timeout/429/5xx/network).
+_TRANSIENT = (httpx.TransportError, httpx.TimeoutException, httpx.HTTPStatusError)
+
+
 @dataclass
 class FrontierResult:
     probed: int = 0
@@ -30,12 +37,13 @@ class FrontierResult:
     jobs: list[NormalizedJob] = field(default_factory=list)
     new_tokens: set[str] = field(default_factory=set)
     high_water: int = 0
+    partial: bool = False
 
 
 def _last_high_water(session: Session) -> int:
     run = session.scalar(
         select(DiscoveryRun)
-        .where(DiscoveryRun.method == _METHOD)
+        .where(DiscoveryRun.method == _METHOD, DiscoveryRun.status != "running")
         .order_by(DiscoveryRun.id.desc())
     )
     if run is None:
@@ -51,7 +59,8 @@ def _record_run(session: Session, result: FrontierResult) -> None:
             boards_found=result.resolved,
             boards_new=len(result.new_tokens),
             checkpoint={"high_water": result.high_water},
-            status="done",
+            finished_at=datetime.now(UTC),
+            status="partial" if result.partial else "done",
         )
     )
     session.commit()
@@ -61,7 +70,11 @@ async def _anchor_frontier(ctx: FetchContext, tokens: list[str]) -> int:
     best = 0
     for token in tokens:
         try:
-            data = await ctx.get_json(_LIST.format(token=token), respect_robots=False)
+            # Never cached: the anchor must reflect the live max id, or fresh jobs above a
+            # stale cached value would sit above the frontier and never be probed.
+            data = await ctx.get_json(
+                _LIST.format(token=token), respect_robots=False, use_cache=False
+            )
         except Exception:
             continue
         for job in data.get("jobs", []) if isinstance(data, dict) else []:
@@ -71,31 +84,39 @@ async def _anchor_frontier(ctx: FetchContext, tokens: list[str]) -> int:
     return best
 
 
-async def _resolve_token(ctx: FetchContext, job_id: int) -> str | None:
+async def _resolve_token(ctx: FetchContext, job_id: int) -> tuple[str, str | None]:
     try:
         location = await ctx.redirect_location(_EMBED.format(job_id=job_id))
+    except _TRANSIENT:
+        return "error", None
     except Exception:
-        return None
+        return "error", None
     if not location:
-        return None
+        return "miss", None
     detection = detect_from_url(location)
-    return detection.token if detection is not None and detection.ats == "greenhouse" else None
+    if detection is None or detection.ats != "greenhouse":
+        return "miss", None
+    return "ok", detection.token
 
 
 async def _fetch_and_normalize(
     ctx: FetchContext, token: str, job_id: int
-) -> NormalizedJob | None:
+) -> tuple[str, NormalizedJob | None]:
     try:
         job = await ctx.get_json(_JOB.format(token=token, job_id=job_id), respect_robots=False)
+    except httpx.HTTPStatusError as exc:
+        return ("miss" if exc.response.status_code == 404 else "error"), None
+    except _TRANSIENT:
+        return "error", None
     except Exception:
-        return None
+        return "error", None
     if not isinstance(job, dict) or not job.get("absolute_url"):
-        return None
+        return "miss", None
     ref = BoardRef(ats="greenhouse", token=token, company=job.get("company_name"))
     try:
-        return _SOURCE.normalize(RawPosting(raw=job), ref)
+        return "ok", _SOURCE.normalize(RawPosting(raw=job), ref)
     except Exception:
-        return None
+        return "miss", None
 
 
 async def crawl_frontier(
@@ -108,6 +129,7 @@ async def crawl_frontier(
     frontier: int | None = None,
 ) -> FrontierResult:
     span = window if window is not None else settings.greenhouse_frontier_window
+    span = max(1, min(span, settings.greenhouse_frontier_max_window))
     known = known_tokens if known_tokens is not None else {
         r.token for r in load_boards(ats="greenhouse")
     }
@@ -124,21 +146,30 @@ async def crawl_frontier(
     if not job_ids:
         return result
 
-    sem = asyncio.Semaphore(max(1, settings.per_host_concurrency))
+    async def probe(job_id: int) -> tuple[int, str, NormalizedJob | None]:
+        status, token = await _resolve_token(ctx, job_id)
+        if status != "ok" or token is None:
+            return job_id, status, None
+        if token not in known:
+            result.new_tokens.add(token)
+        job_status, job = await _fetch_and_normalize(ctx, token, job_id)
+        return job_id, job_status, job
 
-    async def probe(job_id: int) -> NormalizedJob | None:
-        async with sem:
-            token = await _resolve_token(ctx, job_id)
-            if token is None:
-                return None
-            if token not in known:
-                result.new_tokens.add(token)
-            return await _fetch_and_normalize(ctx, token, job_id)
-
-    for job in await asyncio.gather(*(probe(j) for j in job_ids)):
-        if job is not None:
+    outcomes = await asyncio.gather(*(probe(j) for j in job_ids))
+    errored = [job_id for job_id, status, _ in outcomes if status == "error"]
+    for _job_id, status, job in outcomes:
+        if status == "ok" and job is not None:
             result.resolved += 1
             result.jobs.append(job)
+
+    if errored:
+        # Never advance the checkpoint past a transiently-failed id, or that id (a possibly
+        # brand-new posting) is lost forever — the embed endpoint is per-id, not re-pollable.
+        # Advance only to just below the lowest failure so the next run re-probes it.
+        result.high_water = max(checkpoint, min(errored) - 1)
+        result.partial = True
+    else:
+        result.high_water = max(checkpoint, frontier)
     return result
 
 
@@ -161,7 +192,9 @@ async def discover_greenhouse_frontier(
 
     if result.new_tokens:
         refs = [
-            detection_to_board_ref(Detection("greenhouse", token, _EMBED.format(job_id="")))
+            detection_to_board_ref(
+                Detection("greenhouse", token, f"https://boards.greenhouse.io/{token}")
+            )
             for token in sorted(result.new_tokens)
         ]
         merge_boards(refs)

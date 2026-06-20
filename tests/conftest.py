@@ -23,6 +23,20 @@ class FakeRobotsCache(RobotsCache):
         return None
 
 
+@pytest.fixture(autouse=True)
+def _reset_db_globals() -> Iterator[None]:
+    """init_db mutates module-global engine/factory in core.db. Reset them after every test so
+    a tmp-DB test can't leak its (deleted) engine into a later test that calls get_session()
+    without init_db — which would otherwise silently fall back to the real ./internhunter.db."""
+    import internhunter.core.db as db
+
+    yield
+    if db._engine is not None:
+        db._engine.dispose()
+    db._engine = None
+    db._session_factory = None
+
+
 @pytest.fixture
 def db_session() -> Iterator[Session]:
     engine = create_engine("sqlite:///:memory:", future=True)

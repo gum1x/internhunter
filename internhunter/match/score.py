@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from internhunter.config.settings import Settings, get_settings
@@ -66,11 +66,13 @@ def score_jobs(
     }
     # Companies with a verified government hiring-disclosure signal (OFLC/SBIR) are proven
     # active tech employers -> a small, capped boost so legitimate, hiring companies float up.
-    hiring_slugs = {
-        company.company_slug
-        for company in session.scalars(select(Company))
-        if isinstance(company.notes, dict) and "disclosure" in company.notes
-    }
+    hiring_slugs = set(
+        session.scalars(
+            select(Company.company_slug).where(
+                func.json_extract(Company.notes, "$.disclosure").isnot(None)
+            )
+        )
+    )
     input_hash = hashlib.sha1(profile.encode()).hexdigest()
     model_name = f"prefilter:{resolved.embed_model}"
 
@@ -83,7 +85,7 @@ def score_jobs(
         job.freshness_score = fresh
         job.rarity_score = rar
         score_value = discovery_score(fit, fresh, rar)
-        if job.company_slug in hiring_slugs:
+        if job.is_internship and job.company_slug in hiring_slugs:
             score_value = min(1.0, score_value + 0.05)
         job.discovery_score = score_value
         _upsert_score(session, job.job_uid, fit, model_name, input_hash)

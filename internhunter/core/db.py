@@ -216,7 +216,6 @@ class DisclosureLead(Base):
     __tablename__ = "disclosure_leads"
     __table_args__ = (
         UniqueConstraint("company_slug", "email", "full_name", name="uq_disclosure_company_id"),
-        Index("ix_disclosure_company_slug", "company_slug"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -679,22 +678,32 @@ def upsert_officer_leads(session: Session, leads: list[OfficerLead]) -> int:
     return inserted
 
 
+_DISCLOSURE_FILL_FIELDS = ("company_name", "domain", "full_name", "title", "phone", "filed_at")
+
+
 def upsert_disclosure_leads(session: Session, leads: list[DisclosureLead]) -> int:
     inserted = 0
     for lead in leads:
-        stmt = select(DisclosureLead).where(DisclosureLead.company_slug == lead.company_slug)
+        stmt = select(DisclosureLead).where(
+            DisclosureLead.company_slug == lead.company_slug,
+            DisclosureLead.full_name == lead.full_name
+            if lead.full_name
+            else DisclosureLead.full_name.is_(None),
+        )
         if lead.email:
             stmt = stmt.where(DisclosureLead.email == lead.email)
         else:
-            stmt = stmt.where(
-                DisclosureLead.email.is_(None), DisclosureLead.full_name == lead.full_name
-            )
+            stmt = stmt.where(DisclosureLead.email.is_(None))
         existing = session.scalar(stmt)
         if existing is None:
             session.add(lead)
             inserted += 1
-        elif lead.signal:
+            continue
+        if lead.signal:
             existing.signal = {**(existing.signal or {}), **lead.signal}
+        for field in _DISCLOSURE_FILL_FIELDS:  # fill blanks; never clobber a real value
+            if not getattr(existing, field) and getattr(lead, field):
+                setattr(existing, field, getattr(lead, field))
     session.commit()
     return inserted
 

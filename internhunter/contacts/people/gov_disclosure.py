@@ -13,7 +13,11 @@ from internhunter.core.db import DisclosureLead, get_session
 def discover_people_gov_disclosure(
     company_slug: str, slugs: list[str] | None = None
 ) -> list[DiscoveredPerson]:
-    keys = [s for s in (slugs or [company_slug]) if s]
+    # Leads are keyed by canonical (suffix-stripped) slug on ingest, so callers must pass the
+    # canonical form(s) of the target to join 'Google LLC' (filing) to 'google' (job board).
+    from internhunter.core.normalize import canonical_company_slug
+
+    keys = [k for k in {canonical_company_slug(s) for s in (slugs or [company_slug])} if k]
     if not keys:
         return []
     session = get_session()

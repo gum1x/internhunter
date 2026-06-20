@@ -49,9 +49,14 @@ def find_email(
     scraped_emails = scraped_emails or []
 
     # 1. A real, already-known email (GitHub commit, or a government-filing address).
-    if person.known_email and person.known_email.lower().endswith("@" + domain.lower()):
-        src = person.person_source or ""
-        if src in ("oflc_lca", "oflc_perm", "sbir"):
+    #    Government-filing addresses are anchored on the email's OWN domain, not the resolved
+    #    company domain: a disclosure-only company often has no Job-derived domain, and
+    #    resolve_domain would otherwise guess a different one and drop this real address.
+    src = person.person_source or ""
+    known = (person.known_email or "").lower()
+    is_disclosure = src in ("oflc_lca", "oflc_perm", "sbir")
+    if known and (is_disclosure or known.endswith("@" + domain.lower())):
+        if is_disclosure:
             signals = EmailSignals(disclosure_published=True, catch_all=catch_all)
             status, source_label = "disclosure", f"gov:{src}"
         else:
@@ -59,7 +64,7 @@ def find_email(
             status, source_label = "github", "github_commit"
         score, label = score_email(signals)
         return EmailResult(
-            email=person.known_email.lower(),
+            email=known,
             email_status=status,
             email_source=source_label,
             confidence=score,
