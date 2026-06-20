@@ -47,6 +47,7 @@ internhunter discover --method hackernews              # boards from HN "Who is 
 internhunter discover --method searxng --url http://localhost:8888
 internhunter discover --method crtsh --url acme.com    # custom-domain careers via cert transparency
 internhunter discover --method jsonld --url https://acme.com/careers  # schema.org JobPosting
+internhunter discover --method greenhouse_frontier     # walk Greenhouse's GLOBAL job-id space (novel)
 internhunter discover --method wayback                 # Wayback Machine CDX (2nd keyless index)
 internhunter discover --method similar                 # embedding-based "companies like the ones you win on"
 internhunter discover --method edgar                   # SEC Form D — just-funded startups (+ officer leads)
@@ -55,8 +56,11 @@ internhunter discover-all                              # run every cheap channel
 internhunter reresolve                                 # recover real boards from unresolved 'listing' jobs (also runs in discover-all)
 internhunter score                                     # local fit + freshness + rarity -> discovery score
 internhunter score-quality                             # LLM reads borderline jobs -> legitimacy verdict (anti-slop)
+internhunter ingest --source oflc --url <lca.xlsx>     # DOL OFLC LCA tech-hiring filings -> verified HR contacts + signal
+internhunter ingest --source sbir                      # SBIR/STTR awards -> funded tech-firm contacts + signal
 internhunter find-contacts --limit 50                  # find recruiters/hiring contacts + emails per company
 internhunter find-contacts --company acme --methods searxng,github --verify
+internhunter find-contacts --company acme --methods gov_disclosure --verify  # government-filing contacts
 internhunter serve                                     # FastAPI + HTMX dashboard
 ```
 
@@ -66,6 +70,13 @@ internhunter serve                                     # FastAPI + HTMX dashboar
 - **Anti-slop quality reading** scores every job with free heuristics at ingest (ghost/agency/MLM/content-free/evergreen flags + a per-job `sightings` open-duration log), then an LLM reads only the *borderline* jobs (`score-quality`) and assigns a legitimacy verdict. The dashboard hides confirmed slop by default (toggle to show — **nothing is ever deleted**), and notifications skip it.
 
 The dashboard is sortable by **discovery score**, **fit**, freshness, deadline, and more, with substring/ATS/remote filters and CSV export. A **Contacts** view lists discovered people per company with confidence-labelled emails and its own CSV export.
+
+### Two novel ingestion mechanisms
+
+Rather than scrape yet another third-party board, two channels exploit ground truth the field ignores:
+
+- **Greenhouse global job-ID frontier** (`discover --method greenhouse_frontier`). Greenhouse job IDs are a single global monotonic counter, and `boards.greenhouse.io/embed/job_app?token={id}` 301-redirects with the company's board token injected as `for=`. Walking the recent ID frontier is **one primitive that ingests brand-new postings within ~an hour, discovers boards/companies never in the registry, and ranks by freshness** — all keyless. A checkpoint (`DiscoveryRun`) keeps each incremental run cheap; only the first run walks a full `GREENHOUSE_FRONTIER_WINDOW`. Runs frequently on its own scheduler cadence.
+- **Government hiring-disclosure intelligence** (`ingest --source oflc|perm|sbir`). Employers that sponsor skilled workers must publish **DOL OFLC LCA/PERM** filings; **SBIR/STTR** awards list funded tech firms. Both carry **real, government-verified contact emails** (employer POC / attorney / PI) — no guessing, no SMTP. Ingest filters to tech SOC codes (`15-12xx`), stores them as `DisclosureLead`s read by the `gov_disclosure` contacts method (→ `verified`/`probable` via MX + provenance), and records a per-company "actively-hires-tech" signal that gives a small discovery-score boost. `gov_disclosure` is **opt-in** (not in the default `contacts_methods`): these are personal addresses, so keep provenance and mind GDPR/CAN-SPAM before any outreach. The OFLC `.xlsx` is fetched from the data.gov mirror (dol.gov 403s plain bots — set `DISCLOSURE_USER_AGENT`); pass the file via `--url` or `INTERNHUNTER_OFLC_LCA_URL`. Install the parser extra with `pip install -e ".[disclosure]"`.
 
 ## Contacts (self-hosted, $0)
 

@@ -208,6 +208,32 @@ class OfficerLead(Base):
     first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
+class DisclosureLead(Base):
+    """A company contact + hiring signal surfaced from public government filings (DOL OFLC
+    LCA/PERM, SBIR/STTR). Unlike OfficerLead these carry a REAL email/phone, so the contacts
+    funnel reads them as already-known addresses (no guessing)."""
+
+    __tablename__ = "disclosure_leads"
+    __table_args__ = (
+        UniqueConstraint("company_slug", "email", "full_name", name="uq_disclosure_company_id"),
+        Index("ix_disclosure_company_slug", "company_slug"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    company_slug: Mapped[str] = mapped_column(String, index=True)
+    company_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    domain: Mapped[str | None] = mapped_column(String, nullable=True)
+    full_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    title: Mapped[str | None] = mapped_column(String, nullable=True)
+    email: Mapped[str | None] = mapped_column(String, nullable=True)
+    phone: Mapped[str | None] = mapped_column(String, nullable=True)
+    role_hint: Mapped[str | None] = mapped_column(String, nullable=True)
+    source: Mapped[str] = mapped_column(String, default="oflc_lca")
+    signal: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    filed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
 class Sighting(Base):
     __tablename__ = "sightings"
     __table_args__ = (UniqueConstraint("job_uid", name="uq_sightings_job_uid"),)
@@ -649,6 +675,26 @@ def upsert_officer_leads(session: Session, leads: list[OfficerLead]) -> int:
         if existing is None:
             session.add(lead)
             inserted += 1
+    session.commit()
+    return inserted
+
+
+def upsert_disclosure_leads(session: Session, leads: list[DisclosureLead]) -> int:
+    inserted = 0
+    for lead in leads:
+        stmt = select(DisclosureLead).where(DisclosureLead.company_slug == lead.company_slug)
+        if lead.email:
+            stmt = stmt.where(DisclosureLead.email == lead.email)
+        else:
+            stmt = stmt.where(
+                DisclosureLead.email.is_(None), DisclosureLead.full_name == lead.full_name
+            )
+        existing = session.scalar(stmt)
+        if existing is None:
+            session.add(lead)
+            inserted += 1
+        elif lead.signal:
+            existing.signal = {**(existing.signal or {}), **lead.signal}
     session.commit()
     return inserted
 

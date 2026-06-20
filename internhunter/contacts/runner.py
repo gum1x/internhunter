@@ -176,6 +176,21 @@ async def _discover_people(
         except Exception as exc:
             ctx.logger.debug("registries failed for {}: {}", target.company_slug, exc)
 
+    if "gov_disclosure" in methods:
+        try:
+            from internhunter.contacts.people.gov_disclosure import (
+                discover_people_gov_disclosure,
+            )
+            from internhunter.core.normalize import normalize_company_slug
+
+            slug = target.company_slug
+            slugs = {slug, slug.replace("-", ""), normalize_company_slug(target.name or "")}
+            people += await asyncio.to_thread(
+                discover_people_gov_disclosure, slug, [s for s in slugs if s]
+            )
+        except Exception as exc:
+            ctx.logger.debug("gov_disclosure failed for {}: {}", target.company_slug, exc)
+
     return _dedupe(people)
 
 
@@ -217,6 +232,7 @@ async def _verify_email(
     signals = EmailSignals(
         scraped=(result.email_status == "scraped"),
         github=(result.email_status == "github"),
+        disclosure_published=(result.email_status == "disclosure"),
         pattern_votes=int(ev.get("votes", 0)),
         template_locked=bool(ev.get("locked")),
         prior_only=bool(ev.get("prior")),

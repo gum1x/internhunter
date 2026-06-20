@@ -81,6 +81,17 @@ def build_scheduler(settings: Settings | None = None) -> BackgroundScheduler:
             kwargs={"settings": settings},
             id="discover-all",
         )
+        # Greenhouse ID-frontier runs far more often than the daily discover-all: its whole
+        # value is catching brand-new postings within ~an hour, and the checkpoint keeps each
+        # incremental run cheap.
+        from internhunter.discovery.greenhouse_frontier import run_greenhouse_frontier
+
+        scheduler.add_job(
+            run_greenhouse_frontier,
+            trigger=IntervalTrigger(minutes=resolved.greenhouse_frontier_interval_min),
+            kwargs={"settings": settings},
+            id="greenhouse-frontier",
+        )
     if resolved.enable_scheduled_rating:
         scheduler.add_job(
             run_score,

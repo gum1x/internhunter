@@ -57,6 +57,19 @@ def _cmd_discover(args: argparse.Namespace) -> None:
     from internhunter.discovery.fingerprint import Detection, detection_to_board_ref
     from internhunter.discovery.merge import merge_boards
 
+    if args.method == "greenhouse_frontier":
+        from internhunter.discovery.greenhouse_frontier import run_greenhouse_frontier
+
+        frontier = run_greenhouse_frontier(window=args.limit or None)
+        print(
+            f"greenhouse frontier: probed {frontier.probed} ids, "
+            f"resolved {frontier.resolved} jobs, "
+            f"{len(frontier.new_tokens)} new boards, high-water {frontier.high_water}"
+        )
+        for token in sorted(frontier.new_tokens):
+            print(f"  + greenhouse/{token}")
+        return
+
     async def run() -> list[Detection]:
         from internhunter.config.settings import get_settings
 
@@ -315,6 +328,17 @@ def _cmd_ingest(args: argparse.Namespace) -> None:
         total_entries += entries
         total_jobs += jobs
         total_boards += boards
+    if args.source in ("oflc", "perm", "sbir"):
+        from internhunter.discovery.disclosure import run_ingest_disclosure
+
+        summary = run_ingest_disclosure(args.source, url=args.url)
+        print(
+            f"  {args.source}: {summary.rows} rows -> {summary.leads} new leads, "
+            f"{summary.companies} companies signaled"
+        )
+        for error in summary.errors[:5]:
+            print(f"  ! {error}")
+        total_entries += summary.rows
     print(
         f"ingested {total_entries} entries -> "
         f"{total_jobs} jobs upserted, {total_boards} new boards added"
@@ -351,7 +375,12 @@ def main() -> None:
     registry.add_argument("action", choices=["stats"])
 
     ingest = subparsers.add_parser("ingest")
-    ingest.add_argument("--source", choices=["github", "apis", "all"], default="all")
+    ingest.add_argument(
+        "--source", choices=["github", "apis", "oflc", "perm", "sbir", "all"], default="all"
+    )
+    ingest.add_argument(
+        "--url", default=None, help="OFLC LCA/PERM .xlsx URL or local path (oflc/perm sources)"
+    )
 
     detect = subparsers.add_parser("detect")
     detect.add_argument("url")
@@ -362,7 +391,7 @@ def main() -> None:
         choices=[
             "sitemap", "common_crawl", "searxng", "hackernews", "urlscan",
             "yc", "vc", "crtsh", "jsonld", "wayback", "similar", "edgar",
-            "github_code",
+            "github_code", "greenhouse_frontier",
         ],
         required=True,
     )
@@ -387,7 +416,9 @@ def main() -> None:
     find_contacts.add_argument("--limit", type=int, default=50)
     find_contacts.add_argument("--company", default=None, help="single company_slug")
     find_contacts.add_argument(
-        "--methods", default=None, help="comma list: searxng,github,team,staffspy"
+        "--methods",
+        default=None,
+        help="comma list: searxng,github,team,staffspy,ats_raw,registries,gov_disclosure",
     )
     find_contacts.add_argument("--verify", action="store_true", help="run holehe verification")
 

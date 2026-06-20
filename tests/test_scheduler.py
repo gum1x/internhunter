@@ -24,6 +24,7 @@ def test_build_scheduler_jobs() -> None:
         "poll-tier-C",
         "find-contacts",
         "discover-all",
+        "greenhouse-frontier",
         "score",
         "score-llm",
     }

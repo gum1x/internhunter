@@ -41,6 +41,9 @@ contacts = [
 contacts-aggressive = [
     "staffspy",
 ]
+disclosure = [
+    "openpyxl",
+]
 resume = [
     "pypdf",
 ]
@@ -54,6 +57,7 @@ dev = [
     "types-PyYAML",
     "numpy",
     "dnspython",
+    "openpyxl",
 ]
 
 [project.scripts]
@@ -85,7 +89,7 @@ warn_unused_ignores = true
 disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["sentence_transformers", "yaml", "playwright.async_api", "cloakbrowser", "anthropic", "apscheduler", "apscheduler.*", "unidecode", "dns", "dns.*", "github", "staffspy", "holehe", "holehe.*", "pypdf"]
+module = ["sentence_transformers", "yaml", "playwright.async_api", "cloakbrowser", "anthropic", "apscheduler", "apscheduler.*", "unidecode", "dns", "dns.*", "github", "staffspy", "holehe", "holehe.*", "pypdf", "openpyxl"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

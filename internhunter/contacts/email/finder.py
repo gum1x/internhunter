@@ -48,17 +48,23 @@ def find_email(
     known_pairs = known_pairs or []
     scraped_emails = scraped_emails or []
 
-    # 1. GitHub commit email — real, self-reported.
+    # 1. A real, already-known email (GitHub commit, or a government-filing address).
     if person.known_email and person.known_email.lower().endswith("@" + domain.lower()):
-        signals = EmailSignals(github=True, catch_all=catch_all)
+        src = person.person_source or ""
+        if src in ("oflc_lca", "oflc_perm", "sbir"):
+            signals = EmailSignals(disclosure_published=True, catch_all=catch_all)
+            status, source_label = "disclosure", f"gov:{src}"
+        else:
+            signals = EmailSignals(github=True, catch_all=catch_all)
+            status, source_label = "github", "github_commit"
         score, label = score_email(signals)
         return EmailResult(
             email=person.known_email.lower(),
-            email_status="github",
-            email_source="github_commit",
+            email_status=status,
+            email_source=source_label,
             confidence=score,
             label=label,
-            evidence={"source": "github_commit"},
+            evidence={"source": source_label},
         )
 
     name = person.full_name or ""

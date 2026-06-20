@@ -257,6 +257,20 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
             summary.errors.append(f"{name}: {exc}")
             summary.per_method[name] = 0
 
+    # Greenhouse global job-ID frontier: walk the recent ID space to ingest brand-new
+    # postings and discover never-seen boards in one pass (incremental via checkpoint).
+    try:
+        from internhunter.discovery.greenhouse_frontier import discover_greenhouse_frontier
+
+        async with build_fetch_context(resolved) as ctx:
+            frontier = await discover_greenhouse_frontier(ctx, resolved)
+        summary.per_method["greenhouse_frontier"] = len(frontier.new_tokens)
+        summary.boards_new += len(frontier.new_tokens)
+        summary.jobs_ingested += len(frontier.jobs)
+    except Exception as exc:
+        summary.errors.append(f"greenhouse_frontier: {exc}")
+        summary.per_method["greenhouse_frontier"] = 0
+
     # Recover real ATS boards from jobs stuck as ats='listing' at ingest.
     try:
         examined, new_boards = await reresolve_listings(resolved)

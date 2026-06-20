@@ -295,6 +295,23 @@ class FetchContext:
         )
         return response.json()
 
+    async def redirect_location(
+        self, url: str, *, headers: dict[str, str] | None = None
+    ) -> str | None:
+        """Single GET that does NOT follow redirects; returns the raw Location header
+        (None for a 2xx/4xx). Used to read a 3xx that itself carries data in its target."""
+        host = _host_of(url)
+        host_sem = await self.host_limiter.semaphore(host)
+        async with self.global_semaphore:
+            async with host_sem:
+                response = await self.client.get(
+                    url, headers=headers, follow_redirects=False
+                )
+        if response.is_redirect:
+            location = response.headers.get("location")
+            return location if isinstance(location, str) else None
+        return None
+
 
 @asynccontextmanager
 async def build_fetch_context(settings: Settings | None = None) -> AsyncIterator[FetchContext]:
