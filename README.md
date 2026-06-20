@@ -4,6 +4,8 @@ Self-hosted internship discovery engine. It polls company ATS boards **directly*
 
 No third-party job-board API. No paywall. Your machine, your data, the companies' own endpoints.
 
+**6,968 internships discovered so far.**
+
 ## Why
 
 Most internship aggregators scrape the same large boards and miss the long tail of small/rare company boards. InternHunter goes to the source — the ATS each company actually uses — fingerprints new boards from Common Crawl, sitemaps, SearXNG, HN "Who is hiring", **certificate-transparency careers-subdomain enumeration (crt.sh)**, and **schema.org `JobPosting` harvesting**, on a daily schedule. It dedupes dual-posted roles, scores everything by fit, freshness, and rarity, and runs a **local-LLM quality pass** so real rare-and-fresh roles float to the top while slop sinks. Then, for the companies behind those roles, it discovers the people worth contacting and infers/verifies their emails — all $0 and self-hosted.
