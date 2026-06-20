@@ -176,6 +176,19 @@ async def _discover_people(
         except Exception as exc:
             ctx.logger.debug("registries failed for {}: {}", target.company_slug, exc)
 
+    if "gov_disclosure" in methods:
+        try:
+            from internhunter.contacts.people.gov_disclosure import (
+                discover_people_gov_disclosure,
+            )
+
+            slugs = [s for s in (target.company_slug, target.name) if s]
+            people += await asyncio.to_thread(
+                discover_people_gov_disclosure, target.company_slug, slugs
+            )
+        except Exception as exc:
+            ctx.logger.debug("gov_disclosure failed for {}: {}", target.company_slug, exc)
+
     return _dedupe(people)
 
 
@@ -217,6 +230,7 @@ async def _verify_email(
     signals = EmailSignals(
         scraped=(result.email_status == "scraped"),
         github=(result.email_status == "github"),
+        disclosure_published=(result.email_status == "disclosure"),
         pattern_votes=int(ev.get("votes", 0)),
         template_locked=bool(ev.get("locked")),
         prior_only=bool(ev.get("prior")),
@@ -418,9 +432,16 @@ async def _enrich_company(
         if patch_email:
             person.known_email = patch_email
     for person in people:
-        if person.full_name and person.known_email:
-            known_pairs.append((person.full_name, person.known_email))
-            scraped_emails.append(person.known_email)
+        if not person.known_email:
+            continue
+        ke = person.known_email.lower()
+        scraped_emails.append(ke)
+        # Only let a known email teach the company's NAME->email pattern when it is on the
+        # company domain AND not a shared/role mailbox — otherwise a disclosure POC on
+        # hr@acme.com named "Harold Rosen" would mis-lock the format to {f}{l}.
+        on_domain = bool(domain and ke.endswith("@" + domain.lower()))
+        if person.full_name and on_domain and not is_role_account(ke):
+            known_pairs.append((person.full_name, ke))
     scraped_emails = sorted(set(e.lower() for e in scraped_emails))
 
     inference = infer_pattern(known_pairs, domain) if domain else None
@@ -444,7 +465,12 @@ async def _enrich_company(
         except Exception:
             backend = None
     for person in people:
-        person.role_category = classify_title(person.title, backend, cache, settings.llm_model)
+        # Preserve a curated role_category from a structured source (disclosure POC->hr,
+        # SBIR PI->hiring_manager, ATS creator->recruiter); only classify free-text titles.
+        if person.role_category in (None, "other"):
+            person.role_category = classify_title(
+                person.title, backend, cache, settings.llm_model
+            )
     # Find emails for a generous candidate set (role-priority first), then re-rank by
     # contactability and truncate AFTER — so a reachable recruiter beats an unreachable VP.
     people.sort(key=lambda p: role_priority(p.role_category), reverse=True)

@@ -4,6 +4,8 @@ Self-hosted internship discovery engine. It polls company ATS boards **directly*
 
 No third-party job-board API. No paywall. Your machine, your data, the companies' own endpoints.
 
+**6,968 internships discovered so far.**
+
 ## Why
 
 Most internship aggregators scrape the same large boards and miss the long tail of small/rare company boards. InternHunter goes to the source — the ATS each company actually uses — fingerprints new boards from Common Crawl, sitemaps, SearXNG, HN "Who is hiring", **certificate-transparency careers-subdomain enumeration (crt.sh)**, and **schema.org `JobPosting` harvesting**, on a daily schedule. It dedupes dual-posted roles, scores everything by fit, freshness, and rarity, and runs a **local-LLM quality pass** so real rare-and-fresh roles float to the top while slop sinks. Then, for the companies behind those roles, it discovers the people worth contacting and infers/verifies their emails — all $0 and self-hosted.
@@ -47,6 +49,7 @@ internhunter discover --method hackernews              # boards from HN "Who is 
 internhunter discover --method searxng --url http://localhost:8888
 internhunter discover --method crtsh --url acme.com    # custom-domain careers via cert transparency
 internhunter discover --method jsonld --url https://acme.com/careers  # schema.org JobPosting
+internhunter discover --method greenhouse_frontier     # walk Greenhouse's GLOBAL job-id space (novel)
 internhunter discover --method wayback                 # Wayback Machine CDX (2nd keyless index)
 internhunter discover --method similar                 # embedding-based "companies like the ones you win on"
 internhunter discover --method edgar                   # SEC Form D — just-funded startups (+ officer leads)
@@ -55,8 +58,11 @@ internhunter discover-all                              # run every cheap channel
 internhunter reresolve                                 # recover real boards from unresolved 'listing' jobs (also runs in discover-all)
 internhunter score                                     # local fit + freshness + rarity -> discovery score
 internhunter score-quality                             # LLM reads borderline jobs -> legitimacy verdict (anti-slop)
+internhunter ingest --source oflc --url <lca.xlsx>     # DOL OFLC LCA tech-hiring filings -> verified HR contacts + signal
+internhunter ingest --source sbir                      # SBIR/STTR awards -> funded tech-firm contacts + signal
 internhunter find-contacts --limit 50                  # find recruiters/hiring contacts + emails per company
 internhunter find-contacts --company acme --methods searxng,github --verify
+internhunter find-contacts --company acme --methods gov_disclosure --verify  # government-filing contacts
 internhunter serve                                     # FastAPI + HTMX dashboard
 ```
 
@@ -66,6 +72,13 @@ internhunter serve                                     # FastAPI + HTMX dashboar
 - **Anti-slop quality reading** scores every job with free heuristics at ingest (ghost/agency/MLM/content-free/evergreen flags + a per-job `sightings` open-duration log), then an LLM reads only the *borderline* jobs (`score-quality`) and assigns a legitimacy verdict. The dashboard hides confirmed slop by default (toggle to show — **nothing is ever deleted**), and notifications skip it.
 
 The dashboard is sortable by **discovery score**, **fit**, freshness, deadline, and more, with substring/ATS/remote filters and CSV export. A **Contacts** view lists discovered people per company with confidence-labelled emails and its own CSV export.
+
+### Two novel ingestion mechanisms
+
+Rather than scrape yet another third-party board, two channels exploit ground truth the field ignores:
+
+- **Greenhouse global job-ID frontier** (`discover --method greenhouse_frontier`). Greenhouse job IDs are a single global monotonic counter, and `boards.greenhouse.io/embed/job_app?token={id}` 301-redirects with the company's board token injected as `for=`. Walking the recent ID frontier is **one primitive that ingests brand-new postings within ~an hour, discovers boards/companies never in the registry, and ranks by freshness** — all keyless. A checkpoint (`DiscoveryRun`) keeps each incremental run cheap (the high-water mark only advances over IDs that were *definitively* resolved, so a transient 429/5xx never silently skips a fresh posting); only the first run walks a full `GREENHOUSE_FRONTIER_WINDOW` (hard-capped by `GREENHOUSE_FRONTIER_MAX_WINDOW`). Runs on its own scheduler toggle (`ENABLE_GREENHOUSE_FRONTIER`). **Note:** this intentionally bypasses robots on the embed host and is a more aggressive access pattern than polling one board — throttle and set `HTTP_PROXY` if you hit IP-level rate limiting.
+- **Government hiring-disclosure intelligence** (`ingest --source oflc|perm|sbir`). Employers that sponsor skilled workers must publish **DOL OFLC LCA/PERM** filings; **SBIR/STTR** awards list funded tech firms. Both carry **real, government-verified employer contact emails** (employer POC / SBIR PI) — no guessing, no SMTP. Ingest filters to tech SOC codes (`15-11xx`/`15-12xx`), stores them as `DisclosureLead`s read by the **opt-in** `gov_disclosure` contacts method (→ `verified`/`probable` via MX + provenance), and records a per-company "actively-hires-tech" signal that gives a small discovery-score boost. We deliberately **do not harvest third-party immigration-attorney emails** as contacts (not hiring contacts; GDPR/relevance) — attorney-only filings still count toward the company signal, just without a personal contact. `gov_disclosure` is not in the default `contacts_methods`: these are personal addresses, so provenance is stored (`email_source=gov:*`) and you should mind GDPR/CAN-SPAM before any outreach. OFLC files (a data.gov `.xlsx`, often `.zip`-wrapped) are streamed to disk; pass one via `--url` or `INTERNHUNTER_OFLC_LCA_URL` (dol.gov 403s plain bots — set `DISCLOSURE_USER_AGENT`). SBIR is keyless and joins `ingest --source all`. Install the parser extra with `pip install -e ".[disclosure]"`.
 
 ## Contacts (self-hosted, $0)
 
@@ -109,7 +122,7 @@ mypy internhunter
 pytest -q
 ```
 
-Conventions: Python 3.12+, async, fully typed (mypy strict), pydantic v2, no comments/docstrings in source. Every poller ships with a saved fixture and a test.
+Conventions: Python 3.12+, async, fully typed (mypy strict), pydantic v2. Keep comments minimal — a docstring on a non-obvious public function or ORM model, and comments that explain *why* (not *what*), in line with the existing `core/`/`contacts/` code. Every poller ships with a saved fixture and a test.
 
 ## Contributing
 

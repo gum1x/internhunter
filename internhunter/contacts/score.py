@@ -7,6 +7,7 @@ from dataclasses import dataclass
 class EmailSignals:
     scraped: bool = False  # email published on the company site / matches a known address
     github: bool = False  # email came from a GitHub commit (real, self-reported)
+    disclosure_published: bool = False  # real email from a public gov filing (OFLC/SBIR)
     pattern_votes: int = 0  # K known same-domain emails agreeing on the pattern
     prior_only: bool = False  # used only the size-aware global prior
     holehe_confirmed: bool = False  # registered on real sites (HTTPS verification)
@@ -74,6 +75,8 @@ def score_email(signals: EmailSignals) -> tuple[float, str]:
         score += 70.0
     if signals.github:
         score += 65.0
+    if signals.disclosure_published:
+        score += 65.0  # a real, government-published address (employer POC / SBIR PI)
 
     if signals.pattern_votes >= 3:
         score += 50.0
@@ -108,7 +111,12 @@ def score_email(signals: EmailSignals) -> tuple[float, str]:
     # holds even on a catch-all domain and, with any real source, means "verified".
     if signals.mailbox_confirmed:
         score += 45.0
-        if signals.pattern_votes >= 1 or signals.scraped or signals.github:
+        if (
+            signals.pattern_votes >= 1
+            or signals.scraped
+            or signals.github
+            or signals.disclosure_published
+        ):
             score = max(score, 85.0)
         # the verifier confirmed THIS person's name -> definitively verified
         if signals.identity_confirmed:
@@ -117,7 +125,10 @@ def score_email(signals: EmailSignals) -> tuple[float, str]:
     # An owner-verified PGP key is near-proof the address is real -> promote to "verified"
     # whenever any corpus/source signal already backs the local-part.
     if signals.pgp_confirmed and (
-        signals.pattern_votes >= 1 or signals.scraped or signals.github
+        signals.pattern_votes >= 1
+        or signals.scraped
+        or signals.github
+        or signals.disclosure_published
     ):
         score = max(score, 85.0)
 

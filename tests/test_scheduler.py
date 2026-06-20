@@ -24,6 +24,7 @@ def test_build_scheduler_jobs() -> None:
         "poll-tier-C",
         "find-contacts",
         "discover-all",
+        "greenhouse-frontier",
         "score",
         "score-llm",
     }
@@ -37,7 +38,15 @@ def test_build_scheduler_jobs() -> None:
 
 def test_scheduled_discovery_can_be_disabled() -> None:
     scheduler = build_scheduler(Settings(enable_scheduled_discovery=False))
-    assert "discover-all" not in {job.id for job in scheduler.get_jobs()}
+    jobs = {job.id for job in scheduler.get_jobs()}
+    assert "discover-all" not in jobs
+    # The hourly frontier has its own toggle and must NOT be coupled to the daily sweep.
+    assert "greenhouse-frontier" in jobs
+
+
+def test_greenhouse_frontier_has_its_own_toggle() -> None:
+    scheduler = build_scheduler(Settings(enable_greenhouse_frontier=False))
+    assert "greenhouse-frontier" not in {job.id for job in scheduler.get_jobs()}
 
 
 def test_build_scheduler_not_running() -> None:

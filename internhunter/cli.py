@@ -57,6 +57,20 @@ def _cmd_discover(args: argparse.Namespace) -> None:
     from internhunter.discovery.fingerprint import Detection, detection_to_board_ref
     from internhunter.discovery.merge import merge_boards
 
+    if args.method == "greenhouse_frontier":
+        from internhunter.discovery.greenhouse_frontier import run_greenhouse_frontier
+
+        # window unset -> None -> the crawler uses settings.greenhouse_frontier_window (1500).
+        frontier = run_greenhouse_frontier(window=args.limit)
+        print(
+            f"greenhouse frontier: probed {frontier.probed} ids, "
+            f"resolved {frontier.resolved} jobs, "
+            f"{len(frontier.new_tokens)} new boards, high-water {frontier.high_water}"
+        )
+        for token in sorted(frontier.new_tokens):
+            print(f"  + greenhouse/{token}")
+        return
+
     async def run() -> list[Detection]:
         from internhunter.config.settings import get_settings
 
@@ -117,11 +131,11 @@ def _cmd_discover(args: argparse.Namespace) -> None:
             if args.method == "yc":
                 from internhunter.discovery.yc import discover_from_yc
 
-                return await discover_from_yc(ctx, limit=args.limit)
+                return await discover_from_yc(ctx, limit=args.limit or 400)
             if args.method == "vc":
                 from internhunter.discovery.vc import discover_from_vc
 
-                return await discover_from_vc(ctx, limit=args.limit)
+                return await discover_from_vc(ctx, limit=args.limit or 400)
             from internhunter.discovery.common_crawl import discover_from_common_crawl
 
             ats = [a.strip() for a in args.ats.split(",") if a.strip()] if args.ats else None
@@ -315,10 +329,34 @@ def _cmd_ingest(args: argparse.Namespace) -> None:
         total_entries += entries
         total_jobs += jobs
         total_boards += boards
+    # SBIR is keyless so it joins "all"; oflc/perm need a --url, so they stay explicit-only.
+    disclosure_sources = [s for s in ("oflc", "perm", "sbir") if s == args.source]
+    if args.source == "all":
+        disclosure_sources = ["sbir"]
+    disclosure_rows = disclosure_leads = disclosure_companies = 0
+    for src in disclosure_sources:
+        from internhunter.discovery.disclosure import run_ingest_disclosure
+
+        summary = run_ingest_disclosure(src, url=args.url)
+        print(
+            f"  {src}: {summary.rows} rows -> {summary.leads} new leads, "
+            f"{summary.companies} companies signaled"
+        )
+        for error in summary.errors[:5]:
+            print(f"  ! {error}")
+        disclosure_rows += summary.rows
+        disclosure_leads += summary.leads
+        disclosure_companies += summary.companies
+
     print(
         f"ingested {total_entries} entries -> "
         f"{total_jobs} jobs upserted, {total_boards} new boards added"
     )
+    if disclosure_rows:
+        print(
+            f"disclosure: {disclosure_rows} rows -> {disclosure_leads} leads, "
+            f"{disclosure_companies} companies signaled"
+        )
 
 
 def _cmd_registry(args: argparse.Namespace) -> None:
@@ -351,7 +389,12 @@ def main() -> None:
     registry.add_argument("action", choices=["stats"])
 
     ingest = subparsers.add_parser("ingest")
-    ingest.add_argument("--source", choices=["github", "apis", "all"], default="all")
+    ingest.add_argument(
+        "--source", choices=["github", "apis", "oflc", "perm", "sbir", "all"], default="all"
+    )
+    ingest.add_argument(
+        "--url", default=None, help="OFLC LCA/PERM .xlsx URL or local path (oflc/perm sources)"
+    )
 
     detect = subparsers.add_parser("detect")
     detect.add_argument("url")
@@ -362,14 +405,16 @@ def main() -> None:
         choices=[
             "sitemap", "common_crawl", "searxng", "hackernews", "urlscan",
             "yc", "vc", "crtsh", "jsonld", "wayback", "similar", "edgar",
-            "github_code",
+            "github_code", "greenhouse_frontier",
         ],
         required=True,
     )
     discover.add_argument("--url", default=None)
     discover.add_argument("--ats", default=None)
     discover.add_argument("--months", type=int, default=6)
-    discover.add_argument("--limit", type=int, default=400)
+    # Unset by default: yc/vc fall back to 400; greenhouse_frontier falls back to the
+    # configured window (1500). An explicit --limit N overrides for the chosen method.
+    discover.add_argument("--limit", type=int, default=None)
 
     subparsers.add_parser("discover-all")
     reresolve = subparsers.add_parser("reresolve")
@@ -387,7 +432,9 @@ def main() -> None:
     find_contacts.add_argument("--limit", type=int, default=50)
     find_contacts.add_argument("--company", default=None, help="single company_slug")
     find_contacts.add_argument(
-        "--methods", default=None, help="comma list: searxng,github,team,staffspy"
+        "--methods",
+        default=None,
+        help="comma list: searxng,github,team,staffspy,ats_raw,registries,gov_disclosure",
     )
     find_contacts.add_argument("--verify", action="store_true", help="run holehe verification")
 

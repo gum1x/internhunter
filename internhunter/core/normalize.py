@@ -72,6 +72,25 @@ def normalize_company_slug(name: str | None) -> str:
     return slug.strip("-")
 
 
+_CORP_SUFFIXES = (
+    "inc", "llc", "l-l-c", "corp", "corporation", "co", "ltd", "limited",
+    "lp", "llp", "plc", "gmbh", "ag", "sa", "srl", "bv", "nv", "pte", "pvt",
+    "holdings", "group", "technologies", "technology", "labs", "the",
+)
+
+
+def canonical_company_slug(name: str | None) -> str:
+    """A suffix-stripped slug for JOINING records that name the same company differently
+    (e.g. job 'google' vs filing 'Google LLC'). Drops common corporate suffixes/fillers and
+    collapses hyphens so both sides land on the same key."""
+    slug = normalize_company_slug(name)
+    if not slug:
+        return ""
+    tokens = [t for t in slug.split("-") if t and t not in _CORP_SUFFIXES]
+    return "".join(tokens)
+
+
+
 def normalize_title(title: str) -> str:
     lowered = title.strip().lower()
     lowered = _NON_ALNUM_SPACE_RE.sub(" ", lowered)

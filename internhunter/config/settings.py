@@ -93,6 +93,24 @@ class Settings(BaseSettings):
     # M365 GetCredentialType per-mailbox HTTPS verification (gray-area enumeration; opt-out).
     m365_verify: bool = True
 
+    # --- Pillar 1: Greenhouse global job-ID frontier crawler ---
+    # How many recent IDs below the live frontier to probe per run (~2.8k IDs/day published).
+    # The checkpoint makes steady-state runs cheap; only the first run walks a full window.
+    greenhouse_frontier_window: int = 1500
+    greenhouse_frontier_max_window: int = 20000  # hard cap so a bad --limit can't run forever
+    greenhouse_frontier_interval_min: int = 60  # scheduled cadence (freshness lever)
+    enable_greenhouse_frontier: bool = True  # independent of the daily discover-all toggle
+
+    # --- Pillar 2: government hiring-disclosure intelligence (OFLC LCA/PERM + SBIR/STTR) ---
+    # SOC prefixes counted as "tech" hiring. 15-12xx = 2018-SOC software/CS; 15-11xx covers the
+    # 2010-SOC software-developer codes used in pre-FY2020 disclosure files.
+    oflc_soc_prefixes: str = "15-11,15-12"
+    # OFLC LCA disclosure .xlsx URL (data.gov mirror) or local path; empty = pass via --url.
+    oflc_lca_url: str = ""
+    sbir_api_url: str = "https://api.www.sbir.gov/public/api/awards"
+    # dol.gov / sbir.gov 403 plain bots; a descriptive UA (ideally with a contact email) helps.
+    disclosure_user_agent: str = ""
+
 
 def get_settings() -> Settings:
     return Settings()
