@@ -4,13 +4,13 @@ import asyncio
 from dataclasses import dataclass
 from pathlib import Path
 
+import internhunter.apply.submit.greenhouse  # noqa: F401  (registration)
+import internhunter.apply.submit.lever  # noqa: F401  (registration)
 from internhunter.apply.applicant import Applicant, load_applicant, validate_applicant
 from internhunter.apply.fields import classify_fields
 from internhunter.apply.guardrails import skip_reason
 from internhunter.apply.render import render_resume_pdf
 from internhunter.apply.submit.base import get_submitter
-import internhunter.apply.submit.greenhouse  # noqa: F401  (registration)
-import internhunter.apply.submit.lever       # noqa: F401  (registration)
 from internhunter.config.settings import Settings, get_settings
 from internhunter.resume.tailor import TailorRequest, tailor_resume
 
@@ -51,8 +51,12 @@ async def process_job(job, *, ctx, backend, applicant: Applicant, profile: str,
     resume_path = render_resume_pdf(tailored.tailored_resume, out_dir / f"{job.job_uid}.pdf")
 
     if dry_run:
-        return ApplyOutcome(job.job_uid, "would_submit", reason="; ".join(tailored.warnings) or None,
-                            resume_path=str(resume_path))
+        return ApplyOutcome(
+            job.job_uid,
+            "would_submit",
+            reason="; ".join(tailored.warnings) or None,
+            resume_path=str(resume_path),
+        )
 
     result = await submitter.submit(job, ctx, payload, resume_path)
     return ApplyOutcome(job.job_uid, result.status, reason=result.reason,
@@ -61,6 +65,7 @@ async def process_job(job, *, ctx, backend, applicant: Applicant, profile: str,
 
 def select_candidates(session, settings: Settings):
     from sqlalchemy import select
+
     from internhunter.core.db import Application, Job, Score
 
     threshold = settings.auto_apply_min_fit * 100  # llm:% fit_score is 0-100
@@ -82,10 +87,10 @@ async def auto_apply(*, settings: Settings | None = None, limit: int | None = No
                      dry_run: bool = False) -> list[ApplyOutcome]:
     import random
 
-    from internhunter.core.db import Application, get_session
+    from internhunter.core.db import get_session
     from internhunter.core.fetch import build_fetch_context
-    from internhunter.llm.client import LlmCache, get_backend
-    from internhunter.match.prefilter import load_candidate_profile, load_profile_text
+    from internhunter.llm.client import get_backend
+    from internhunter.match.prefilter import load_profile_text
     from internhunter.resume.load import load_resume_text
 
     resolved = settings or get_settings()
@@ -100,7 +105,6 @@ async def auto_apply(*, settings: Settings | None = None, limit: int | None = No
         return [ApplyOutcome("", "failed", reason="no base resume found")]
 
     backend = get_backend(resolved)
-    cache = LlmCache(resolved.cache_dir)
     outcomes: list[ApplyOutcome] = []
     session = get_session()
     try:

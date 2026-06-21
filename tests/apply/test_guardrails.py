@@ -1,7 +1,12 @@
 from datetime import UTC, datetime, timedelta
 
 from internhunter.apply.applicant import Applicant
-from internhunter.apply.guardrails import applications_today, eligible, kill_switch_active, skip_reason
+from internhunter.apply.guardrails import (
+    applications_today,
+    eligible,
+    kill_switch_active,
+    skip_reason,
+)
 from internhunter.config.settings import Settings
 from internhunter.core.db import Application
 

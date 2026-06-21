@@ -16,6 +16,7 @@ def test_parse_questions_maps_fields_and_types():
 
 
 def test_submitter_registered():
+    import internhunter.apply.submit.greenhouse  # noqa: F401  (registration)
     from internhunter.apply.submit.base import get_submitter
-    import internhunter.apply.submit.greenhouse  # noqa: F401  (triggers registration)
+
     assert isinstance(get_submitter("greenhouse"), GreenhouseSubmitter)

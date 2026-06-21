@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
 TRUTHFULNESS_CONTRACT: str = (
@@ -36,9 +37,6 @@ class TailorResult:
     warnings: list[str]
 
 
-import json
-
-
 def build_tailor_prompt(request: TailorRequest) -> str:
     return (
         f"{TRUTHFULNESS_CONTRACT}\n\n{ATS_FORMAT_NOTES}\n\n"
@@ -59,7 +57,9 @@ def build_verify_prompt(base_resume: str, tailored: str) -> str:
     )
 
 
-def verify_truthful(base_resume: str, tailored: str, backend, *, max_tokens: int = 512) -> list[str]:
+def verify_truthful(
+    base_resume: str, tailored: str, backend, *, max_tokens: int = 512
+) -> list[str]:
     reply = backend.generate(build_verify_prompt(base_resume, tailored), max_tokens=max_tokens)
     start, end = reply.find("["), reply.rfind("]")
     if start == -1 or end == -1:

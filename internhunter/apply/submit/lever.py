@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from internhunter.apply.fields import FormField
 from internhunter.apply.submit.base import (
-    FormSpec, SubmitResult, Submitter, register_submitter,
+    FormSpec,
+    SubmitResult,
+    Submitter,
+    register_submitter,
 )
 
 _TYPE_MAP = {"text": "text", "file": "file", "textarea": "textarea", "select": "select"}

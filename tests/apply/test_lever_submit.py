@@ -15,6 +15,7 @@ def test_parse_posting_extracts_fields():
 
 
 def test_submitter_registered():
-    from internhunter.apply.submit.base import get_submitter
     import internhunter.apply.submit.lever  # noqa: F401
+    from internhunter.apply.submit.base import get_submitter
+
     assert isinstance(get_submitter("lever"), LeverSubmitter)

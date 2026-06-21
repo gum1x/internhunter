@@ -17,7 +17,12 @@ def test_classify_splits_fillable_and_unknown():
         FormField(name="name", label="Full Name", ftype="text", required=True),
         FormField(name="email", label="Email", ftype="email", required=True),
         FormField(name="resume", label="Resume/CV", ftype="file", required=True),
-        FormField(name="q1", label="Why do you want to work here?", ftype="textarea", required=True),
+        FormField(
+            name="q1",
+            label="Why do you want to work here?",
+            ftype="textarea",
+            required=True,
+        ),
         FormField(name="phone", label="Phone", ftype="text", required=False),
     ]
     payload, unknown = classify_fields(spec, A)
@@ -27,7 +32,7 @@ def test_classify_splits_fillable_and_unknown():
 
 
 def test_classify_treats_none_as_missing():
-    """None applicant field should not appear in payload; required field with None should go to unknown."""
+    """None applicant field should not appear; required field with None goes to unknown."""
     a_with_none = Applicant(
         full_name="Jane Doe",
         email="jane@x.com",
@@ -40,6 +45,6 @@ def test_classify_treats_none_as_missing():
         FormField(name="phone_field", label="Phone", ftype="text", required=True),
     ]
     payload, unknown = classify_fields(spec, a_with_none)
-    # phone is None, so it should not appear in payload, and since required=True, should be in unknown
+    # phone is None, should not appear in payload; required=True so goes to unknown
     assert "phone_field" not in payload
     assert len(unknown) == 1 and unknown[0].name == "phone_field"

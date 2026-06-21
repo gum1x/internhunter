@@ -1,4 +1,4 @@
-from internhunter.resume.tailor import TailorRequest, tailor_resume, verify_truthful
+from internhunter.resume.tailor import TailorRequest, tailor_resume
 
 
 class _Backend:

@@ -1,5 +1,9 @@
 from internhunter.apply.submit.base import (
-    FormSpec, SubmitResult, Submitter, get_submitter, register_submitter,
+    FormSpec,
+    SubmitResult,
+    Submitter,
+    get_submitter,
+    register_submitter,
 )
 
 

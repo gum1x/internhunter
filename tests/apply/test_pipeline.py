@@ -1,18 +1,27 @@
 import asyncio
 
-import pytest
-
 from internhunter.apply.applicant import Applicant
-from internhunter.apply.pipeline import process_job
-from internhunter.apply.submit.base import FormSpec, SubmitResult, register_submitter, Submitter
 from internhunter.apply.fields import FormField
+from internhunter.apply.pipeline import process_job
+from internhunter.apply.submit.base import (
+    FormSpec,
+    SubmitResult,
+    Submitter,
+    register_submitter,
+)
 from internhunter.config.settings import Settings
 
 
 class _Job:
-    job_uid = "u1"; ats = "fake_easy"; board_token = "t"; source_job_id = "1"
-    company = "Acme"; company_slug = "acme"; title = "SWE Intern"
-    description_text = "Build things."; canonical_url = "https://x/y"
+    job_uid = "u1"
+    ats = "fake_easy"
+    board_token = "t"
+    source_job_id = "1"
+    company = "Acme"
+    company_slug = "acme"
+    title = "SWE Intern"
+    description_text = "Build things."
+    canonical_url = "https://x/y"
 
 
 class _Backend:
@@ -53,7 +62,8 @@ def test_easy_job_submits(tmp_path):
 
 
 def test_unknown_field_routes_to_review(tmp_path):
-    job = _Job(); job.ats = "fake_hard"
+    job = _Job()
+    job.ats = "fake_hard"
     out = asyncio.run(process_job(job, ctx=None, backend=_Backend(), applicant=A,
                                   profile="python", base_resume="x",
                                   settings=Settings(cache_dir=tmp_path), dry_run=False))
@@ -61,7 +71,8 @@ def test_unknown_field_routes_to_review(tmp_path):
 
 
 def test_unknown_ats_routes_to_review(tmp_path):
-    job = _Job(); job.ats = "no_adapter_ats"
+    job = _Job()
+    job.ats = "no_adapter_ats"
     out = asyncio.run(process_job(job, ctx=None, backend=_Backend(), applicant=A,
                                   profile="python", base_resume="x",
                                   settings=Settings(cache_dir=tmp_path), dry_run=False))
