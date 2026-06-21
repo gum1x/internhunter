@@ -46,6 +46,6 @@ class LeverSubmitter(Submitter):
             resp = await ctx.post_json(url, json_body=body)
         except Exception as exc:
             return SubmitResult(status="failed", reason=f"post error: {exc}")
-        if isinstance(resp, dict) and resp.get("ok", True):
+        if isinstance(resp, dict) and (resp.get("ok") is True or resp.get("status") == "ok"):
             return SubmitResult(status="submitted", confirmation=str(resp.get("id") or ""))
         return SubmitResult(status="failed", reason=f"unexpected response: {resp!r:.200}")

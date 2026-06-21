@@ -159,7 +159,8 @@ async def auto_apply(
                     settings=resolved,
                     dry_run=dry_run,
                 )
-                _record(session, job, outcome)
+                if not dry_run and outcome.status in ("submitted", "needs_review"):
+                    _record(session, job, outcome)
                 outcomes.append(outcome)
                 if not dry_run and outcome.status == "submitted":
                     await asyncio.sleep(resolved.auto_apply_delay_seconds * (1 + random.random()))
