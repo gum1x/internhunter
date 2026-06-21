@@ -792,13 +792,13 @@ def create_app() -> FastAPI:
 
     @app.post("/apply/run", response_class=HTMLResponse)
     async def apply_run(dry_run: bool = Form(True)) -> HTMLResponse:
-        s = get_settings()
-        if not s.enable_auto_apply and not dry_run:
+        settings = get_settings()
+        if not settings.enable_auto_apply and not dry_run:
             return HTMLResponse(
                 "<div>Auto-apply is disabled. Enable it in settings to submit, "
                 "or run a dry-run.</div>"
             )
-        outcomes = await auto_apply(settings=s, dry_run=dry_run)
+        outcomes = await auto_apply(settings=settings, dry_run=dry_run)
         rows = "".join(
             f"<tr><td>{o.status}</td><td>{o.job_uid}</td>"
             f"<td>{o.reason or o.confirmation or ''}</td></tr>"

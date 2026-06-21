@@ -48,6 +48,11 @@
     <button type="button" class="btn btn-default btn-sm"
             hx-post="/search" hx-target="#search-status" hx-swap="innerHTML">🔍 Search all boards</button>
     <span id="search-status" class="page-sub" style="margin:0" aria-live="polite"></span>
+    <label class="page-sub" style="margin:0"><input type="checkbox" name="dry_run" value="true" checked> Dry run</label>
+    <button type="button" class="btn btn-default btn-sm"
+            hx-post="/apply/run" hx-include="previous input[name='dry_run']"
+            hx-target="#apply-status" hx-swap="innerHTML">🚀 Auto-apply</button>
+    <span id="apply-status" class="page-sub" style="margin:0" aria-live="polite"></span>
     <span class="push chips">
       <a class="chip" aria-pressed="{{ 'true' if remote else 'false' }}"
          hx-get="{{ ui.dash_url(q, ats, not remote, hide_low_quality, sort) }}"
