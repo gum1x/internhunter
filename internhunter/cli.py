@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from typing import Any
 
 from internhunter.core.db import init_db
 
@@ -380,7 +381,7 @@ def _cmd_registry(args: argparse.Namespace) -> None:
     print(f"  {'total':16} {total}")
 
 
-def _run_auto_apply(**kwargs):
+def _run_auto_apply(**kwargs: Any) -> list[Any]:
     import asyncio
 
     from internhunter.apply.pipeline import auto_apply
