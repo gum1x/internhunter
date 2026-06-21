@@ -14,6 +14,7 @@ from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, Response
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -79,6 +80,7 @@ def _search_status_html() -> str:
     )
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
+STATIC_DIR = Path(__file__).parent / "static"
 SORT_COLUMNS = {
     "posted_at": Job.posted_at,
     "deadline_at": Job.deadline_at,
@@ -226,6 +228,7 @@ def _page_context(
         "page": page,
         "pages": pages,
         "total": total,
+        "page_size": page_size,
     }
 
 
@@ -477,6 +480,7 @@ def _parse_date(value: str | None) -> datetime | None:
 
 def create_app() -> FastAPI:
     app = FastAPI()
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     settings = get_settings()
 

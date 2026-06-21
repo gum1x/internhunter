@@ -51,6 +51,26 @@ def test_index_renders_intern(client: TestClient) -> None:
     assert "Software Engineering Intern" in response.text
 
 
+def test_static_assets_served_and_htmx_local(client: TestClient) -> None:
+    css = client.get("/static/app.css")
+    assert css.status_code == 200 and "--background" in css.text
+    htmx = client.get("/static/htmx.min.js")
+    assert htmx.status_code == 200 and "htmx" in htmx.text
+    page = client.get("/")
+    # htmx is vendored locally, not pulled from a CDN.
+    assert "/static/htmx.min.js" in page.text
+    assert "unpkg.com" not in page.text
+    assert 'id="theme-toggle"' in page.text
+
+
+def test_empty_db_shows_first_run_cta(tmp_path: Path) -> None:
+    init_db(db_path=tmp_path / "empty.db")
+    with TestClient(create_app()) as c:
+        page = c.get("/")
+        assert page.status_code == 200
+        assert "No internships yet" in page.text
+
+
 def test_jobs_filter_matches_and_excludes(client: TestClient) -> None:
     match = client.get("/jobs", params={"q": "Software Engineering"})
     assert match.status_code == 200

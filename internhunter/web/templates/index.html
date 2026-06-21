@@ -1,126 +1,74 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>InternHunter</title>
-  <script src="https://unpkg.com/htmx.org@2"></script>
-  <style>
-    :root { color-scheme: dark; }
-    body {
-      margin: 0;
-      padding: 2rem;
-      background: #14161a;
-      color: #e6e6e6;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 14px;
-    }
-    h1 { margin: 0 0 1rem; font-size: 1.4rem; }
-    .stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-    .stat {
-      background: #1e2127;
-      border: 1px solid #2c3038;
-      border-radius: 6px;
-      padding: 0.75rem 1rem;
-      min-width: 110px;
-    }
-    .stat .num { font-size: 1.5rem; font-weight: 600; color: #7ec699; }
-    .stat .label { font-size: 0.75rem; color: #9aa0aa; text-transform: uppercase; }
-    form.filters { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
-    input, select {
-      background: #1e2127;
-      color: #e6e6e6;
-      border: 1px solid #2c3038;
-      border-radius: 4px;
-      padding: 0.5rem;
-      font-family: inherit;
-      font-size: 13px;
-    }
-    label { display: flex; align-items: center; gap: 0.35rem; }
-    a { color: #6db3f2; }
-    .csv-link {
-      margin-left: auto;
-      background: #2b5cff;
-      color: #fff;
-      text-decoration: none;
-      padding: 0.5rem 0.9rem;
-      border-radius: 4px;
-    }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid #262a31; }
-    th { color: #9aa0aa; font-weight: 600; position: sticky; top: 0; background: #14161a; }
-    tbody tr:hover { background: #1b1e24; }
-    .empty { color: #6c7280; text-align: center; }
-    nav { margin-bottom: 0.5rem; }
-    .badge { padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; }
-    .chip { display: inline-block; padding: 0.1rem 0.45rem; margin: 0.1rem; border-radius: 10px; font-size: 0.72rem; text-decoration: none; background: #2c3038; color: #cdd2db; }
-    .fit { display: inline-block; min-width: 1.6rem; text-align: center; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 600; cursor: help; }
-    .fit-4, .fit-3 { background: #1f5c3a; color: #9ff0c0; }
-    .fit-2 { background: #5c521f; color: #f0e29f; }
-    .fit-1, .fit-0 { background: #4a3030; color: #e6b8b8; }
-    .badge-verified { background: #1f5c3a; color: #9ff0c0; }
-    .badge-probable { background: #5c521f; color: #f0e29f; }
-    .badge-guessed { background: #3a3f48; color: #b8bdc7; }
-    .badge-invalid { background: #5c2b2b; color: #f0a9a9; }
-    .badge-q-ok { background: #1f5c3a; color: #9ff0c0; }
-    .badge-q-unclear { background: #3a3f48; color: #b8bdc7; }
-    .badge-q-spam, .badge-q-mlm { background: #5c2b2b; color: #f0a9a9; }
-    .badge-q-ghost, .badge-q-agency { background: #5c521f; color: #f0e29f; }
-    .job-contact { padding: 0.2rem 0; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    .job-contact .role { color: #9aa0aa; font-size: 0.75rem; }
-    .job-contact .email { color: #7ec699; }
-    .expand-btn { cursor: pointer; background: #2c3038; color: #e6e6e6; border: 0; border-radius: 4px; padding: 0.25rem 0.5rem; }
-    .tracked { color: #7ec699; font-size: 0.8rem; white-space: nowrap; }
-  </style>
-</head>
-<body>
-  <nav><a href="/contacts">Contacts →</a> · <a href="/tracker">Tracker →</a></nav>
-  <h1>InternHunter</h1>
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}InternHunter — Jobs{% endblock %}
+{% block content %}
+<h1 class="page-title">Internships</h1>
+<p class="page-sub">Rare &amp; fresh roles from companies' own ATS boards, ranked to your profile.</p>
 
-  <div class="stats">
-    <div class="stat"><div class="num">{{ stats.total }}</div><div class="label">Total Jobs</div></div>
-    <div class="stat"><div class="num">{{ stats.internships }}</div><div class="label">Internships</div></div>
-    <div class="stat"><div class="num">{{ stats.companies }}</div><div class="label">Companies</div></div>
-    <div class="stat"><div class="num">{{ stats.remote }}</div><div class="label">Remote</div></div>
-    <div class="stat"><div class="num">{{ stats.contacts }}</div><div class="label">Contacts</div></div>
-  </div>
+<div id="dash">
+  <section class="stats">
+    <div class="card stat"><div class="num">{{ stats.total }}</div><div class="label">Total jobs</div></div>
+    <div class="card stat"><div class="num">{{ stats.internships }}</div><div class="label">Internships</div></div>
+    <div class="card stat"><div class="num">{{ stats.companies }}</div><div class="label">Companies</div></div>
+    <div class="card stat"><div class="num">{{ stats.remote }}</div><div class="label">Remote</div></div>
+    <div class="card stat"><div class="num">{{ stats.contacts }}</div><div class="label">Contacts</div></div>
+  </section>
 
-  <div class="searchbar" style="margin:1rem 0;display:flex;align-items:center;gap:1rem;">
-    <button type="button"
-            style="padding:0.6rem 1.2rem;font-size:1rem;font-weight:600;cursor:pointer;border:0;border-radius:6px;background:#2563eb;color:#fff;"
-            hx-post="/search" hx-target="#search-status" hx-swap="innerHTML">
-      🔍 Search all boards
-    </button>
-    <span id="search-status" style="color:#9aa4b2;"></span>
-  </div>
-
-  <form class="filters"
-        hx-get="/jobs"
-        hx-target="#jobs"
+  <form class="toolbar"
+        hx-get="/"
+        hx-target="#dash" hx-select="#dash" hx-swap="outerHTML"
+        hx-push-url="true" hx-indicator="#dash"
         hx-trigger="keyup changed delay:300ms from:input, change">
-    <input type="search" name="q" value="{{ q }}" placeholder="Search title or company">
-    <select name="ats">
+    <span class="input-icon grow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="search" name="q" value="{{ q }}" placeholder="Search title or company" aria-label="Search jobs">
+      <span class="kbd">/</span>
+    </span>
+    <select name="ats" aria-label="Filter by ATS">
       <option value="">All ATS</option>
       {% for option in ats_options %}
       <option value="{{ option }}" {% if option == ats %}selected{% endif %}>{{ option }}</option>
       {% endfor %}
     </select>
-    <label><input type="checkbox" name="remote" value="true" {% if remote %}checked{% endif %}> Remote</label>
-    <label title="Hide jobs the quality reader flagged as spam/ghost/agency/MLM (never deletes them)"><input type="checkbox" name="hide_low_quality" value="true" {% if hide_low_quality %}checked{% endif %}> Hide slop</label>
-    <select name="sort">
+    <select name="sort" aria-label="Sort by">
       <option value="discovery_score" {% if sort == "discovery_score" %}selected{% endif %}>Discovery score</option>
       <option value="fit" {% if sort == "fit" %}selected{% endif %}>Fit (profile match)</option>
       <option value="freshness_score" {% if sort == "freshness_score" %}selected{% endif %}>Freshness</option>
       <option value="posted_at" {% if sort == "posted_at" %}selected{% endif %}>Posted (newest)</option>
       <option value="deadline_at" {% if sort == "deadline_at" %}selected{% endif %}>Deadline (soonest)</option>
-      <option value="company" {% if sort == "company" %}selected{% endif %}>Company (A-Z)</option>
-      <option value="title" {% if sort == "title" %}selected{% endif %}>Title (A-Z)</option>
+      <option value="company" {% if sort == "company" %}selected{% endif %}>Company (A–Z)</option>
+      <option value="title" {% if sort == "title" %}selected{% endif %}>Title (A–Z)</option>
     </select>
-    <a class="csv-link" href="/export.csv?{{ {'q': q, 'ats': ats, 'remote': 'true' if remote else '', 'sort': sort}|urlencode }}">Download CSV</a>
+    <label class="check"><input type="checkbox" name="remote" value="true" {% if remote %}checked{% endif %}> Remote</label>
+    <label class="check" title="Hide jobs the quality reader flagged as spam/ghost/agency/MLM (never deletes them)"><input type="checkbox" name="hide_low_quality" value="true" {% if hide_low_quality %}checked{% endif %}> Hide slop</label>
+    <a class="btn btn-outline btn-sm push" href="/export.csv?{{ {'q': q, 'ats': ats, 'remote': 'true' if remote else '', 'sort': sort}|urlencode }}">⬇ CSV</a>
   </form>
+
+  <div class="toolbar" style="margin-top:-0.4rem">
+    <button type="button" class="btn btn-default btn-sm"
+            hx-post="/search" hx-target="#search-status" hx-swap="innerHTML">🔍 Search all boards</button>
+    <span id="search-status" class="page-sub" style="margin:0" aria-live="polite"></span>
+    <span class="push chips">
+      <a class="chip" aria-pressed="{{ 'true' if remote else 'false' }}"
+         hx-get="{{ ui.dash_url(q, ats, not remote, hide_low_quality, sort) }}"
+         hx-target="#dash" hx-select="#dash" hx-swap="outerHTML" hx-push-url="true">🌐 Remote</a>
+      <a class="chip" aria-pressed="{{ 'true' if sort == 'posted_at' else 'false' }}"
+         hx-get="{{ ui.dash_url(q, ats, remote, hide_low_quality, 'posted_at') }}"
+         hx-target="#dash" hx-select="#dash" hx-swap="outerHTML" hx-push-url="true">✨ Fresh</a>
+      <a class="chip" aria-pressed="{{ 'true' if sort == 'deadline_at' else 'false' }}"
+         hx-get="{{ ui.dash_url(q, ats, remote, hide_low_quality, 'deadline_at') }}"
+         hx-target="#dash" hx-select="#dash" hx-swap="outerHTML" hx-push-url="true">⏳ Closing soon</a>
+      <a class="chip" aria-pressed="{{ 'true' if sort == 'fit' else 'false' }}"
+         hx-get="{{ ui.dash_url(q, ats, remote, hide_low_quality, 'fit') }}"
+         hx-target="#dash" hx-select="#dash" hx-swap="outerHTML" hx-push-url="true">🎯 High fit</a>
+      <a class="chip" aria-pressed="{{ 'true' if hide_low_quality else 'false' }}"
+         hx-get="{{ ui.dash_url(q, ats, remote, not hide_low_quality, sort) }}"
+         hx-target="#dash" hx-select="#dash" hx-swap="outerHTML" hx-push-url="true">🧹 Hide slop</a>
+    </span>
+  </div>
 
   <div id="jobs">
     {% include "_table.html" %}
   </div>
-</body>
-</html>
+</div>
+{% endblock %}

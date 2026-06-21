@@ -2,30 +2,30 @@
   <td>{{ a.company or "" }}</td>
   <td>{% if a.link %}<a href="{{ a.link }}" target="_blank" rel="noopener">{{ a.role or "(role)" }}</a>{% else %}{{ a.role or "" }}{% endif %}</td>
   <td>{{ a.location or "" }}</td>
-  <td class="{% if due_status %}due-{{ due_status }}{% endif %}"><input type="date" name="due_date"
+  <td class="{% if due_status %}due-{{ due_status }}{% endif %}"><input type="date" name="due_date" aria-label="Due date"
          value="{{ a.due_date.strftime('%Y-%m-%d') if a.due_date else '' }}"
          hx-post="/tracker/{{ a.id }}/update" hx-target="#trk-{{ a.id }}" hx-swap="outerHTML" hx-trigger="change"></td>
-  <td><select name="status" class="st-{{ a.status | lower | replace(' ', '') }}"
+  <td><select name="status" aria-label="Status" class="st-{{ a.status | lower | replace(' ', '') }}"
          hx-post="/tracker/{{ a.id }}/update" hx-target="#trk-{{ a.id }}" hx-swap="outerHTML" hx-trigger="change">
       {% for s in statuses %}<option value="{{ s }}" {% if s == a.status %}selected{% endif %}>{{ s }}</option>{% endfor %}
     </select></td>
-  <td><select name="emailed" class="{{ 'em-yes' if a.emailed else 'em-no' }}"
+  <td><select name="emailed" aria-label="Emailed" class="{{ 'em-yes' if a.emailed else 'em-no' }}"
          hx-post="/tracker/{{ a.id }}/update" hx-target="#trk-{{ a.id }}" hx-swap="outerHTML" hx-trigger="change">
       <option value="no" {% if not a.emailed %}selected{% endif %}>No</option>
       <option value="yes" {% if a.emailed %}selected{% endif %}>Yes</option>
     </select></td>
   <td>
-    <input type="text" name="contact_name" value="{{ cname }}" placeholder="name" style="width:7rem"
+    <input type="text" name="contact_name" value="{{ cname }}" placeholder="name" aria-label="Contact name" style="width:7rem"
        hx-post="/tracker/{{ a.id }}/update" hx-target="#trk-{{ a.id }}" hx-swap="outerHTML" hx-trigger="change">
-    <input type="text" name="contact_email" value="{{ cemail }}" placeholder="email" style="width:11rem"
+    <input type="text" name="contact_email" value="{{ cemail }}" placeholder="email" aria-label="Contact email" style="width:11rem"
        hx-post="/tracker/{{ a.id }}/update" hx-target="#trk-{{ a.id }}" hx-swap="outerHTML" hx-trigger="change">
   </td>
-  <td><input type="date" name="applied_at"
+  <td><input type="date" name="applied_at" aria-label="Applied date"
          value="{{ a.applied_at.strftime('%Y-%m-%d') if a.applied_at else '' }}"
          hx-post="/tracker/{{ a.id }}/update" hx-target="#trk-{{ a.id }}" hx-swap="outerHTML" hx-trigger="change"></td>
-  <td><input type="text" name="notes" value="{{ a.notes or '' }}" placeholder="notes" style="width:10rem"
+  <td><input type="text" name="notes" value="{{ a.notes or '' }}" placeholder="notes" aria-label="Notes" style="width:10rem"
          hx-post="/tracker/{{ a.id }}/update" hx-target="#trk-{{ a.id }}" hx-swap="outerHTML" hx-trigger="change"></td>
-  <td><button class="expand-btn" title="Remove from tracker"
+  <td><button class="btn btn-ghost btn-icon" aria-label="Remove from tracker" title="Remove from tracker"
          hx-post="/tracker/{{ a.id }}/delete" hx-target="#trk-{{ a.id }}" hx-swap="outerHTML"
          hx-confirm="Remove this from your tracker?">✕</button></td>
 </tr>

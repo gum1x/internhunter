@@ -1,7 +1,8 @@
 {% set base = '/tracker?status=' + (status | urlencode) %}
 {% macro th(key, label) %}
-<th><a href="{{ base }}&sort={{ key }}">{{ label }}{% if sort == key %} ↓{% endif %}</a></th>
+<th><a class="sort" href="{{ base }}&sort={{ key }}">{{ label }}{% if sort == key %}<span class="arrow">↓</span>{% endif %}</a></th>
 {% endmacro %}
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
@@ -21,3 +22,4 @@
     {% for r in rows %}{% set a = r.a %}{% set cname = r.cname %}{% set cemail = r.cemail %}{% set due_status = r.due_status %}{% include "_tracker_row.html" %}{% else %}<tr><td colspan="10" class="empty">Nothing tracked yet — hit “+ Track” on a job.</td></tr>{% endfor %}
   </tbody>
 </table>
+</div>
