@@ -486,6 +486,8 @@ def main() -> None:
     schedule.add_argument("--run-now", action="store_true")
     schedule.add_argument("--ats", default=None)
 
+    subparsers.add_parser("mcp", help="run the MCP server (stdio) for Claude/MCP clients")
+
     args = parser.parse_args()
 
     if args.command == "init-db":
@@ -532,5 +534,10 @@ def main() -> None:
         return
     if args.command == "schedule":
         _cmd_schedule(args)
+        return
+    if args.command == "mcp":
+        from internhunter.mcp_server import main as mcp_main
+
+        mcp_main()
         return
     parser.print_help()

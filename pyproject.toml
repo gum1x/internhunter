@@ -47,6 +47,9 @@ disclosure = [
 resume = [
     "pypdf",
 ]
+mcp = [
+    "mcp>=1.2",
+]
 dev = [
     "pytest",
     "pytest-asyncio",
@@ -89,7 +92,7 @@ warn_unused_ignores = true
 disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["sentence_transformers", "yaml", "playwright.async_api", "cloakbrowser", "anthropic", "apscheduler", "apscheduler.*", "unidecode", "dns", "dns.*", "github", "staffspy", "holehe", "holehe.*", "pypdf", "openpyxl"]
+module = ["sentence_transformers", "yaml", "playwright.async_api", "cloakbrowser", "anthropic", "apscheduler", "apscheduler.*", "unidecode", "dns", "dns.*", "github", "staffspy", "holehe", "holehe.*", "pypdf", "openpyxl", "mcp", "mcp.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

@@ -152,6 +152,49 @@ Conventions: Python 3.12+, async, fully typed (mypy strict), pydantic v2. Keep c
 - **Add a discoverer** — implement a function returning `list[Detection]` under `discovery/`, feed it through `discovery/merge.py`. a
 - **Contribute boards** — append real `(ats, token)` lines to `registry/boards.jsonl`; CI validates uniqueness and known ATSs.
 
+## MCP server (use it from Claude)
+
+InternHunter ships an [MCP](https://modelcontextprotocol.io) server so Claude can query
+your discovered internships, fit ratings, and outreach contacts directly. It's read-only
+over the local SQLite DB — no network, no writes.
+
+```bash
+pip install -e ".[mcp]"
+internhunter mcp          # serves over stdio
+```
+
+**Tools:** `search_jobs` (keyword/remote/location/ATS/min-fit filters, sortable by fit /
+recency / deadline), `top_internships` (best LLM-rated picks), `get_job` (full posting +
+apply URL + that company's contacts), `get_contacts` (recruiters/managers with
+confidence-labelled emails + LinkedIn), `get_company` (profile + jobs + contacts), `stats`.
+
+**Claude Desktop** — add to `claude_desktop_config.json`. To use the data on a
+self-hosted box, run it over SSH (stdio tunnels cleanly):
+
+```json
+{
+  "mcpServers": {
+    "internhunter": {
+      "command": "ssh",
+      "args": ["YOUR_SSH_HOST", "cd /path/to/internhunter && .venv/bin/internhunter mcp"]
+    }
+  }
+}
+```
+
+Or, if running locally where the DB lives:
+
+```json
+{
+  "mcpServers": {
+    "internhunter": { "command": "internhunter", "args": ["mcp"] }
+  }
+}
+```
+
+Then ask Claude things like *"top 10 remote SWE internships I should apply to"*, *"who do I
+email at Acme and what's the link"*, or *"show the full posting for this job_uid"*.
+
 ## License
 
 MIT.
