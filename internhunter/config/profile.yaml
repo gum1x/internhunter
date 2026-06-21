@@ -22,3 +22,17 @@ graduation_year: 2026
 seeking:
   - summer internship
   - internship
+
+# Identity used to fill application forms. Required fields must be present for auto-apply.
+applicant:
+  full_name: ""            # required
+  email: ""                # required
+  phone: ""                # required
+  location: ""             # city, state/country
+  work_authorization: ""   # required, e.g. "US Citizen" / "F-1 OPT" / "Requires H-1B"
+  requires_sponsorship: false  # required (bool)
+  linkedin_url: ""
+  github_url: ""
+  portfolio_url: ""
+  school: ""
+  grad_date: ""            # e.g. "2026-05"
