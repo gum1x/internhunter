@@ -380,6 +380,23 @@ def _cmd_registry(args: argparse.Namespace) -> None:
     print(f"  {'total':16} {total}")
 
 
+def _run_auto_apply(**kwargs):
+    import asyncio
+
+    from internhunter.apply.pipeline import auto_apply
+
+    return asyncio.run(auto_apply(**kwargs))
+
+
+def _cmd_apply(args: argparse.Namespace) -> None:
+    outcomes = _run_auto_apply(limit=args.limit, dry_run=args.dry_run)
+    counts: dict[str, int] = {}
+    for o in outcomes:
+        counts[o.status] = counts.get(o.status, 0) + 1
+        print(f"  {o.status:12} {o.job_uid or '-'} {o.reason or o.confirmation or ''}")
+    print("apply: " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="internhunter")
     subparsers = parser.add_subparsers(dest="command")
@@ -456,6 +473,10 @@ def main() -> None:
     schedule.add_argument("--run-now", action="store_true")
     schedule.add_argument("--ats", default=None)
 
+    apply_cmd = subparsers.add_parser("apply")
+    apply_cmd.add_argument("--dry-run", action="store_true")
+    apply_cmd.add_argument("--limit", type=int, default=None)
+
     args = parser.parse_args()
 
     if args.command == "init-db":
@@ -502,5 +523,8 @@ def main() -> None:
         return
     if args.command == "schedule":
         _cmd_schedule(args)
+        return
+    if args.command == "apply":
+        _cmd_apply(args)
         return
     parser.print_help()
