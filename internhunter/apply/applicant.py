@@ -29,7 +29,7 @@ def load_applicant(settings: Settings | None = None) -> Applicant:
     data = yaml.safe_load(resolved.profile_path.read_text(encoding="utf-8")) or {}
     block = data.get("applicant") or {}
     known = {f.name for f in fields(Applicant)}
-    kwargs = {k: block.get(k, "") for k in known}
+    kwargs = {k: (block.get(k) or "") for k in known}
     kwargs["requires_sponsorship"] = bool(block.get("requires_sponsorship", False))
     return Applicant(**kwargs)
 

@@ -56,7 +56,7 @@ def classify_fields(
             payload[f.name] = "@resume"
             continue
         key = field_key(f.label)
-        value = str(getattr(a, key)).strip() if key else ""
+        value = str(getattr(a, key) or "").strip() if key else ""
         if value:
             payload[f.name] = value
         elif f.required:
