@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
+from typing import Any
 
 from internhunter.config.settings import Settings, get_settings
 
@@ -29,7 +30,7 @@ def load_applicant(settings: Settings | None = None) -> Applicant:
     data = yaml.safe_load(resolved.profile_path.read_text(encoding="utf-8")) or {}
     block = data.get("applicant") or {}
     known = {f.name for f in fields(Applicant)}
-    kwargs = {k: (block.get(k) or "") for k in known}
+    kwargs: dict[str, Any] = {k: (block.get(k) or "") for k in known}
     kwargs["requires_sponsorship"] = bool(block.get("requires_sponsorship", False))
     return Applicant(**kwargs)
 

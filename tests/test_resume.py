@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from internhunter.resume.tailor import (
     ATS_FORMAT_NOTES,
     TRUTHFULNESS_CONTRACT,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any
 
 from internhunter.apply.fields import FormField
 
@@ -24,10 +25,12 @@ class Submitter(ABC):
     ats: str
 
     @abstractmethod
-    async def probe_form(self, job, ctx) -> FormSpec: ...
+    async def probe_form(self, job: Any, ctx: Any) -> FormSpec: ...
 
     @abstractmethod
-    async def submit(self, job, ctx, payload: dict[str, str], resume_path) -> SubmitResult: ...
+    async def submit(
+        self, job: Any, ctx: Any, payload: dict[str, str], resume_path: Any
+    ) -> SubmitResult: ...
 
 
 SUBMITTER_REGISTRY: dict[str, Submitter] = {}

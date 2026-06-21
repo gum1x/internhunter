@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from typing import Any
 
 TRUTHFULNESS_CONTRACT: str = (
     "Resume tailoring may reorder, rephrase, and emphasize existing true "
@@ -58,7 +59,7 @@ def build_verify_prompt(base_resume: str, tailored: str) -> str:
 
 
 def verify_truthful(
-    base_resume: str, tailored: str, backend, *, max_tokens: int = 512
+    base_resume: str, tailored: str, backend: Any, *, max_tokens: int = 512
 ) -> list[str]:
     reply = backend.generate(build_verify_prompt(base_resume, tailored), max_tokens=max_tokens)
     start, end = reply.find("["), reply.rfind("]")
@@ -71,7 +72,7 @@ def verify_truthful(
     return [str(x) for x in items] if isinstance(items, list) else []
 
 
-def tailor_resume(request: TailorRequest, backend, *, max_tokens: int = 1024) -> TailorResult:
+def tailor_resume(request: TailorRequest, backend: Any, *, max_tokens: int = 1024) -> TailorResult:
     tailored = backend.generate(build_tailor_prompt(request), max_tokens=max_tokens).strip()
     problems = verify_truthful(request.base_resume, tailored, backend)
     if problems:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import internhunter.apply.submit.greenhouse  # noqa: F401  (registration)
 import internhunter.apply.submit.lever  # noqa: F401  (registration)
@@ -14,8 +15,16 @@ from internhunter.apply.submit.base import get_submitter
 from internhunter.config.settings import Settings, get_settings
 from internhunter.resume.tailor import TailorRequest, tailor_resume
 
-TIER_A = ("greenhouse", "lever", "ashby", "workable", "smartrecruiters",
-          "recruitee", "personio", "pinpoint")
+TIER_A = (
+    "greenhouse",
+    "lever",
+    "ashby",
+    "workable",
+    "smartrecruiters",
+    "recruitee",
+    "personio",
+    "pinpoint",
+)
 
 
 @dataclass
@@ -27,8 +36,17 @@ class ApplyOutcome:
     confirmation: str | None = None
 
 
-async def process_job(job, *, ctx, backend, applicant: Applicant, profile: str,
-                      base_resume: str, settings: Settings, dry_run: bool) -> ApplyOutcome:
+async def process_job(
+    job: Any,
+    *,
+    ctx: Any,
+    backend: Any,
+    applicant: Applicant,
+    profile: str,
+    base_resume: str,
+    settings: Settings,
+    dry_run: bool,
+) -> ApplyOutcome:
     submitter = get_submitter(job.ats)
     if submitter is None:
         return ApplyOutcome(job.job_uid, "needs_review", reason=f"no adapter for ats={job.ats}")
@@ -43,8 +61,12 @@ async def process_job(job, *, ctx, backend, applicant: Applicant, profile: str,
         return ApplyOutcome(job.job_uid, "needs_review", reason=f"unfillable fields: {labels}")
 
     tailored = tailor_resume(
-        TailorRequest(job_uid=job.job_uid, job_text=f"{job.title}. {job.description_text}",
-                      base_resume=base_resume, profile=profile),
+        TailorRequest(
+            job_uid=job.job_uid,
+            job_text=f"{job.title}. {job.description_text}",
+            base_resume=base_resume,
+            profile=profile,
+        ),
         backend,
     )
     out_dir = Path(settings.cache_dir) / "resumes"
@@ -59,32 +81,41 @@ async def process_job(job, *, ctx, backend, applicant: Applicant, profile: str,
         )
 
     result = await submitter.submit(job, ctx, payload, resume_path)
-    return ApplyOutcome(job.job_uid, result.status, reason=result.reason,
-                        resume_path=str(resume_path), confirmation=result.confirmation)
+    return ApplyOutcome(
+        job.job_uid,
+        result.status,
+        reason=result.reason,
+        resume_path=str(resume_path),
+        confirmation=result.confirmation,
+    )
 
 
-def select_candidates(session, settings: Settings):
+def select_candidates(session: Any, settings: Settings) -> list[Any]:
     from sqlalchemy import select
 
     from internhunter.core.db import Application, Job, Score
 
     threshold = settings.auto_apply_min_fit * 100  # llm:% fit_score is 0-100
     applied = select(Application.job_uid)
-    fit = (select(Score.job_uid).where(Score.model.like("llm:%"),
-                                       Score.fit_score >= threshold))
-    return list(session.scalars(
-        select(Job).where(
-            Job.is_internship.is_(True),
-            Job.ats.in_(TIER_A),
-            Job.job_uid.in_(fit),
-            Job.job_uid.not_in(applied),
-            (Job.quality_verdict.is_(None)) | (Job.quality_verdict != "slop"),
-        ).order_by(Job.discovery_score.desc().nulls_last())
-    ))
+    fit = select(Score.job_uid).where(Score.model.like("llm:%"), Score.fit_score >= threshold)
+    return list(
+        session.scalars(
+            select(Job)
+            .where(
+                Job.is_internship.is_(True),
+                Job.ats.in_(TIER_A),
+                Job.job_uid.in_(fit),
+                Job.job_uid.not_in(applied),
+                (Job.quality_verdict.is_(None)) | (Job.quality_verdict != "slop"),
+            )
+            .order_by(Job.discovery_score.desc().nulls_last())
+        )
+    )
 
 
-async def auto_apply(*, settings: Settings | None = None, limit: int | None = None,
-                     dry_run: bool = False) -> list[ApplyOutcome]:
+async def auto_apply(
+    *, settings: Settings | None = None, limit: int | None = None, dry_run: bool = False
+) -> list[ApplyOutcome]:
     import random
 
     from internhunter.core.db import get_session
@@ -117,10 +148,17 @@ async def auto_apply(*, settings: Settings | None = None, limit: int | None = No
                 if reason is not None:
                     if reason == "daily cap reached" or reason.startswith("auto-apply disabled"):
                         break  # hard stop for the whole run
-                    continue   # per-job skip (already applied / ineligible / company cap)
-                outcome = await process_job(job, ctx=ctx, backend=backend, applicant=applicant,
-                                            profile=profile, base_resume=base_resume,
-                                            settings=resolved, dry_run=dry_run)
+                    continue  # per-job skip (already applied / ineligible / company cap)
+                outcome = await process_job(
+                    job,
+                    ctx=ctx,
+                    backend=backend,
+                    applicant=applicant,
+                    profile=profile,
+                    base_resume=base_resume,
+                    settings=resolved,
+                    dry_run=dry_run,
+                )
                 _record(session, job, outcome)
                 outcomes.append(outcome)
                 if not dry_run and outcome.status == "submitted":
@@ -130,7 +168,7 @@ async def auto_apply(*, settings: Settings | None = None, limit: int | None = No
     return outcomes
 
 
-def _record(session, job, outcome: ApplyOutcome) -> None:
+def _record(session: Any, job: Any, outcome: ApplyOutcome) -> None:
     from datetime import UTC, datetime
 
     from internhunter.core.db import Application
@@ -139,9 +177,14 @@ def _record(session, job, outcome: ApplyOutcome) -> None:
     if outcome.confirmation:
         note = f"{note} (confirmation={outcome.confirmation})".strip()
     app = Application(
-        job_uid=job.job_uid, status=outcome.status, company=job.company,
-        company_slug=job.company_slug, role=job.title, link=job.canonical_url,
-        resume_path=outcome.resume_path, notes=note or None,
+        job_uid=job.job_uid,
+        status=outcome.status,
+        company=job.company,
+        company_slug=job.company_slug,
+        role=job.title,
+        link=job.canonical_url,
+        resume_path=outcome.resume_path,
+        notes=note or None,
         applied_at=datetime.now(UTC) if outcome.status == "submitted" else None,
     )
     session.add(app)

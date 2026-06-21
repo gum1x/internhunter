@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from internhunter.apply.fields import FormField
 from internhunter.apply.submit.base import (
     FormSpec,
@@ -11,7 +13,7 @@ from internhunter.apply.submit.base import (
 _TYPE_MAP = {"text": "text", "file": "file", "textarea": "textarea", "select": "select"}
 
 
-def parse_posting(payload: dict) -> list[FormField]:
+def parse_posting(payload: dict[str, Any]) -> list[FormField]:
     out: list[FormField] = []
     for q in payload.get("applicationQuestions", []):
         out.append(
@@ -29,13 +31,15 @@ def parse_posting(payload: dict) -> list[FormField]:
 class LeverSubmitter(Submitter):
     ats = "lever"
 
-    async def probe_form(self, job, ctx) -> FormSpec:
+    async def probe_form(self, job: Any, ctx: Any) -> FormSpec:
         url = f"https://api.lever.co/v0/postings/{job.board_token}/{job.source_job_id}"
         payload = await ctx.get_json(url)
         payload = payload if isinstance(payload, dict) else {}
         return FormSpec(fields=parse_posting(payload))
 
-    async def submit(self, job, ctx, payload: dict[str, str], resume_path) -> SubmitResult:
+    async def submit(
+        self, job: Any, ctx: Any, payload: dict[str, str], resume_path: Any
+    ) -> SubmitResult:
         url = f"https://jobs.lever.co/{job.board_token}/{job.source_job_id}/apply"
         body = {k: v for k, v in payload.items() if v != "@resume"}
         try:
