@@ -1,13 +1,31 @@
+{% import "_macros.html" as ui %}
+{% macro sort_th(key, label) %}
+<th><button type="button" class="sort"
+      hx-get="{{ ui.dash_url(q, ats, remote, hide_low_quality, key) }}"
+      hx-target="#dash" hx-select="#dash" hx-swap="outerHTML" hx-push-url="true">
+  {{ label }}{% if sort == key %}<span class="arrow">↓</span>{% endif %}</button></th>
+{% endmacro %}
+{% if total == 0 %}
+<div class="card empty-state">
+  <div class="icon">🔭</div>
+  <h2>No internships yet</h2>
+  <p>Run a search to pull live roles from companies' ATS boards, or load the optional
+     starter snapshot so you begin with a pre-fetched set.</p>
+  <button type="button" class="btn btn-default"
+          hx-post="/search" hx-target="#search-status" hx-swap="innerHTML">🔍 Search all boards</button>
+</div>
+{% else %}
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
-      <th>Fit</th>
-      <th>Title</th>
-      <th>Company</th>
+      {{ sort_th('fit', 'Fit') }}
+      {{ sort_th('title', 'Title') }}
+      {{ sort_th('company', 'Company') }}
       <th>Location</th>
       <th>Kind</th>
-      <th>Posted</th>
-      <th>Deadline</th>
+      {{ sort_th('posted_at', 'Posted') }}
+      {{ sort_th('deadline_at', 'Deadline') }}
       <th>ATS</th>
       <th>Quality</th>
       <th>Contacts</th>
@@ -26,10 +44,10 @@
       <td><a href="{{ job.canonical_url }}" target="_blank" rel="noopener">{{ job.title }}</a></td>
       <td>{{ job.company or "" }}</td>
       <td>{{ job.location_normalized or "" }}</td>
-      <td>{{ job.internship_kind or "" }}</td>
+      <td>{% if job.internship_kind %}<span class="badge tone-muted">{{ job.internship_kind }}</span>{% endif %}</td>
       <td>{{ job.posted_at.strftime("%Y-%m-%d") if job.posted_at else "" }}</td>
       <td>{{ job.deadline_at.strftime("%Y-%m-%d") if job.deadline_at else "" }}</td>
-      <td>{{ job.ats }}</td>
+      <td><span class="badge tone-muted">{{ job.ats }}</span></td>
       <td>
         {% if job.quality_verdict %}
         <span class="badge badge-q-{{ job.quality_verdict }}" title="{{ job.quality_flags|join(', ') }}">{{ job.quality_verdict }}</span>
@@ -38,17 +56,17 @@
         {% endif %}
       </td>
       <td>
-        <button class="expand-btn"
+        <button class="btn btn-ghost btn-sm" aria-label="Show contacts for {{ job.company or 'company' }}"
                 hx-get="/jobs/{{ job.job_uid }}/contacts"
                 hx-target="#jc-{{ loop.index }}"
-                hx-swap="innerHTML">show</button>
+                hx-swap="innerHTML">Show</button>
         <div id="jc-{{ loop.index }}"></div>
       </td>
       <td>
         {% if job.job_uid in tracked %}
         <span class="tracked">✓ Tracked</span>
         {% else %}
-        <button type="button" class="expand-btn"
+        <button type="button" class="btn btn-outline btn-sm"
                 hx-post="/jobs/{{ job.job_uid }}/track"
                 hx-target="this"
                 hx-swap="outerHTML"
@@ -56,19 +74,23 @@
         {% endif %}
       </td>
     </tr>
-    {% else %}
-    <tr><td colspan="11" class="empty">No jobs found.</td></tr>
     {% endfor %}
   </tbody>
 </table>
-
-{% set base = {'q': q, 'ats': ats, 'remote': 'true' if remote else '', 'hide_low_quality': 'true' if hide_low_quality else '', 'sort': sort} %}
-<div class="pager" style="display:flex;gap:0.75rem;align-items:center;justify-content:center;margin:1rem 0;">
-  {% if page > 1 %}
-  <button class="expand-btn" hx-get="/jobs?{{ (base.items()|list + [('page', page - 1)])|urlencode }}" hx-target="#jobs" hx-swap="innerHTML">← Prev</button>
-  {% endif %}
-  <span style="color:#9aa0aa;">Page {{ page }} of {{ pages }} · {{ total }} internships</span>
-  {% if page < pages %}
-  <button class="expand-btn" hx-get="/jobs?{{ (base.items()|list + [('page', page + 1)])|urlencode }}" hx-target="#jobs" hx-swap="innerHTML">Next →</button>
-  {% endif %}
 </div>
+
+{% set start = (page - 1) * page_size %}
+<div class="pager">
+  <span class="count">
+    Showing {{ start + 1 }}–{{ start + (jobs|length) }} of {{ total }} internships · page {{ page }} of {{ pages }}
+  </span>
+  <span class="nav">
+    <button type="button" class="btn btn-outline btn-sm" {% if page <= 1 %}disabled{% endif %}
+            hx-get="{{ ui.dash_url(q, ats, remote, hide_low_quality, sort, page - 1) }}"
+            hx-target="#dash" hx-select="#dash" hx-swap="outerHTML" hx-push-url="true">← Prev</button>
+    <button type="button" class="btn btn-outline btn-sm" {% if page >= pages %}disabled{% endif %}
+            hx-get="{{ ui.dash_url(q, ats, remote, hide_low_quality, sort, page + 1) }}"
+            hx-target="#dash" hx-select="#dash" hx-swap="outerHTML" hx-push-url="true">Next →</button>
+  </span>
+</div>
+{% endif %}

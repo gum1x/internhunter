@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}InternHunter{% endblock %}</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("ih-theme");
+        if (t === "dark" || (!t && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+          document.documentElement.classList.add("dark");
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+  {% set _p = request.url.path %}
+  {% set active = 'contacts' if _p.startswith('/contacts') else 'tracker' if _p.startswith('/tracker') else 'jobs' %}
+  <div id="progress" class="progress" aria-hidden="true"></div>
+
+  <header class="appbar">
+    <a class="brand" href="/"><span class="dot"></span> InternHunter</a>
+    <nav class="tabs" aria-label="Primary">
+      <a class="tab" href="/" {% if active == 'jobs' %}aria-current="page"{% endif %}>🔎 <span class="label">Jobs</span></a>
+      <a class="tab" href="/contacts" {% if active == 'contacts' %}aria-current="page"{% endif %}>📇 <span class="label">Contacts</span></a>
+      <a class="tab" href="/tracker" {% if active == 'tracker' %}aria-current="page"{% endif %}>📋 <span class="label">Tracker</span></a>
+    </nav>
+    <span class="spacer"></span>
+    <button id="theme-toggle" type="button" class="btn btn-ghost btn-icon" aria-label="Toggle theme">🌙</button>
+  </header>
+
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <div id="toast-host" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

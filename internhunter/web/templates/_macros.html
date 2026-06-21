@@ -1,0 +1,10 @@
+{% macro dash_url(q, ats, remote, hide_low_quality, sort, page=1) -%}
+/?{{ {
+  'q': q or '',
+  'ats': ats or '',
+  'remote': 'true' if remote else '',
+  'hide_low_quality': 'true' if hide_low_quality else '',
+  'sort': sort or '',
+  'page': page,
+}|urlencode }}
+{%- endmacro %}
