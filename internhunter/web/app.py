@@ -13,13 +13,14 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.exc import IntegrityError
 
+from internhunter.apply.pipeline import auto_apply
 from internhunter.config.settings import get_settings
 from internhunter.core.db import (
     Application,
@@ -789,6 +790,22 @@ def create_app() -> FastAPI:
             session.close()
         return HTMLResponse("")  # HTMX swaps the row out of the table
 
+    @app.post("/apply/run", response_class=HTMLResponse)
+    async def apply_run(dry_run: bool = Form(True)) -> HTMLResponse:
+        s = get_settings()
+        if not s.enable_auto_apply and not dry_run:
+            return HTMLResponse(
+                "<div>Auto-apply is disabled. Enable it in settings to submit, "
+                "or run a dry-run.</div>"
+            )
+        outcomes = await auto_apply(settings=s, dry_run=dry_run)
+        rows = "".join(
+            f"<tr><td>{o.status}</td><td>{o.job_uid}</td>"
+            f"<td>{o.reason or o.confirmation or ''}</td></tr>"
+            for o in outcomes
+        )
+        return HTMLResponse(f"<table><tbody>{rows}</tbody></table>")
+
     @app.get("/tracker/export.csv")
     def tracker_export(status: str | None = None, sort: str = "due") -> Response:
         apps = _fetch_applications(status, sort)
@@ -826,3 +843,6 @@ def create_app() -> FastAPI:
         )
 
     return app
+
+
+app = create_app()
