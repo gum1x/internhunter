@@ -309,23 +309,48 @@ def _cmd_schedule(args: argparse.Namespace) -> None:
         scheduler.shutdown()
 
 
+def _listing_ingestors() -> dict[str, tuple[str, str, str]]:
+    """name -> (label, module, function). Keyless ones join `--source all`; indeed/handshake
+    are explicit-only (browser/auth), like oflc/perm."""
+    return {
+        "github": ("github lists", "internhunter.discovery.internship_lists",
+                   "ingest_internship_lists"),
+        "apis": ("job apis", "internhunter.discovery.job_apis", "ingest_job_apis"),
+        "linkedin": ("linkedin", "internhunter.discovery.linkedin", "ingest_linkedin"),
+        "usajobs": ("usajobs", "internhunter.discovery.usajobs", "ingest_usajobs"),
+        "bigco": ("big-company", "internhunter.discovery.bigco", "ingest_bigco"),
+        "university": ("university portals", "internhunter.discovery.university",
+                       "ingest_universities"),
+        "google_jobs": ("google jobs", "internhunter.discovery.google_jobs",
+                        "ingest_google_jobs"),
+        "indeed": ("indeed", "internhunter.discovery.indeed", "ingest_indeed"),
+        "handshake": ("handshake", "internhunter.discovery.handshake", "ingest_handshake"),
+    }
+
+
+# In `--source all`: every keyless (no-login) ingestor, including Indeed (keyless, but spins up
+# a browser to clear the bot-wall). Only handshake stays explicit-only — it requires a saved
+# university login session and is inert without one.
+_ALL_LISTING_SOURCES = ("github", "apis", "linkedin", "usajobs", "bigco", "university",
+                        "google_jobs", "indeed")
+
+
 def _cmd_ingest(args: argparse.Namespace) -> None:
     import asyncio
+    from importlib import import_module
 
     total_entries = total_jobs = total_boards = 0
-    if args.source in ("github", "all"):
-        from internhunter.discovery.internship_lists import ingest_internship_lists
-
-        entries, jobs, boards = asyncio.run(ingest_internship_lists())
-        print(f"  github lists: {entries} entries -> {jobs} jobs, {boards} new boards")
-        total_entries += entries
-        total_jobs += jobs
-        total_boards += boards
-    if args.source in ("apis", "all"):
-        from internhunter.discovery.job_apis import ingest_job_apis
-
-        entries, jobs, boards = asyncio.run(ingest_job_apis())
-        print(f"  job apis: {entries} entries -> {jobs} jobs, {boards} new boards")
+    ingestors = _listing_ingestors()
+    selected = (
+        _ALL_LISTING_SOURCES if args.source == "all"
+        else (args.source,) if args.source in ingestors
+        else ()
+    )
+    for name in selected:
+        label, module, func = ingestors[name]
+        coro = getattr(import_module(module), func)()
+        entries, jobs, boards = asyncio.run(coro)
+        print(f"  {label}: {entries} entries -> {jobs} jobs, {boards} new boards")
         total_entries += entries
         total_jobs += jobs
         total_boards += boards
@@ -390,7 +415,12 @@ def main() -> None:
 
     ingest = subparsers.add_parser("ingest")
     ingest.add_argument(
-        "--source", choices=["github", "apis", "oflc", "perm", "sbir", "all"], default="all"
+        "--source",
+        choices=[
+            "github", "apis", "linkedin", "usajobs", "bigco", "university", "google_jobs",
+            "indeed", "handshake", "oflc", "perm", "sbir", "all",
+        ],
+        default="all",
     )
     ingest.add_argument(
         "--url", default=None, help="OFLC LCA/PERM .xlsx URL or local path (oflc/perm sources)"

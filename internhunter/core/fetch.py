@@ -284,6 +284,7 @@ class FetchContext:
         json_body: Any = None,
         params: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
+        respect_robots: bool = True,
     ) -> Any:
         response = await self._request(
             "POST",
@@ -292,6 +293,7 @@ class FetchContext:
             headers=headers,
             json_body=json_body,
             use_cache=False,
+            respect_robots=respect_robots,
         )
         return response.json()
 

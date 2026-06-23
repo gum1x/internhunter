@@ -139,6 +139,11 @@ _SUBDOMAIN_ATS = (
     (".pinpointhq.com", "pinpoint"),
     # api.teamtailor.com -> "api" is in _RESERVED_TOKENS, so it is excluded by _valid_token
     (".teamtailor.com", "teamtailor"),
+    # --- big-company shared platforms (generic detection of bespoke enterprise careers) ---
+    (".eightfold.ai", "eightfold"),
+    (".phenompeople.com", "phenom"),
+    (".successfactors.com", "successfactors"),
+    (".successfactors.eu", "successfactors"),
 )
 
 _PATH_ATS = (

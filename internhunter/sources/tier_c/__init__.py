@@ -11,6 +11,9 @@ _POLLER_MODULES = [
     "internhunter.sources.tier_c.oracle_cloud",
     "internhunter.sources.tier_c.adp",
     "internhunter.sources.tier_c.paylocity",
+    "internhunter.sources.tier_c.eightfold",
+    "internhunter.sources.tier_c.phenom",
+    "internhunter.sources.tier_c.successfactors",
 ]
 
 for _module in _POLLER_MODULES:

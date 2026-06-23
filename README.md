@@ -28,13 +28,27 @@ cp .env.example .env
 docker compose up --build
 ```
 
-## Coverage (24 platforms, 3 tiers)
+## Coverage (27 ATS platforms, 3 tiers + external listings)
 
 | Tier | Transport | Platforms |
 |---|---|---|
 | **A** — keyless JSON | httpx | Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee, Personio, Pinpoint |
 | **B** — public HTML/JSON | httpx | BreezyHR, BambooHR, Jobvite, JazzHR, Zoho Recruit, Dover, Rippling, Gem, Comeet, Teamtailor |
-| **C** — JSON/XML probe + stealth browser | httpx / Playwright / CloakBrowser | Workday, iCIMS, Oracle Cloud, ADP, UltiPro/UKG, Paylocity |
+| **C** — JSON/XML probe + stealth browser | httpx / Playwright / CloakBrowser | Workday, iCIMS, Oracle Cloud, ADP, UltiPro/UKG, Paylocity, Eightfold, Phenom, SuccessFactors |
+
+Beyond company ATS boards, **external-listing ingestors** pull roles the aggregators surface and
+recover the real ATS board behind each apply link where it exists (`reresolve` upgrades the rest):
+
+| Source | Access | Notes |
+|---|---|---|
+| **LinkedIn** | keyless guest jobs API | rate-limited; personal single-user use |
+| **USAJobs** (federal) | **keyless** (public HTML, no API key) | Pathways / student-trainee internships |
+| **Big-company sites** | keyless JSON careers APIs | Google, Amazon, Microsoft, Apple, Netflix (extensible) |
+| **University portals** | public-page JSON-LD harvest | recovers employer/ATS boards schools expose publicly |
+| **Google Jobs** | approximated via JSON-LD + SearXNG | no direct SERP scraping |
+| **Indeed** | keyless (stealth browser, **no login**) | on by default; full scrape, best-effort/bot-walled |
+| **Handshake** | **requires a university login session** | the one exception — no public/no-login feed exists; inert unless you supply your own session |
+| **Simplify / community lists** | keyless GitHub JSON | already ingested via `--source github` |
 
 ## Commands
 
@@ -58,6 +72,14 @@ internhunter discover-all                              # run every cheap channel
 internhunter reresolve                                 # recover real boards from unresolved 'listing' jobs (also runs in discover-all)
 internhunter score                                     # local fit + freshness + rarity -> discovery score
 internhunter score-quality                             # LLM reads borderline jobs -> legitimacy verdict (anti-slop)
+internhunter ingest --source linkedin                  # LinkedIn keyless guest jobs API
+internhunter ingest --source usajobs                   # federal internships, keyless (no API key)
+internhunter ingest --source bigco                     # big-company custom careers APIs (Google/Amazon/MS/Apple/Netflix)
+internhunter ingest --source university                # harvest ATS boards behind public university career pages
+internhunter ingest --source google_jobs               # approximate Google Jobs via JSON-LD + SearXNG (needs SEARXNG_URL)
+internhunter ingest --source indeed                    # keyless stealth-browser full scrape (no login; on by default)
+internhunter ingest --source handshake                 # needs a saved Handshake login session (else inert)
+internhunter ingest --source all                       # every keyless ingestor incl. indeed (skips login-only handshake)
 internhunter ingest --source oflc --url <lca.xlsx>     # DOL OFLC LCA tech-hiring filings -> verified HR contacts + signal
 internhunter ingest --source sbir                      # SBIR/STTR awards -> funded tech-firm contacts + signal
 internhunter find-contacts --limit 50                  # find recruiters/hiring contacts + emails per company
@@ -68,7 +90,7 @@ internhunter serve                                     # FastAPI + HTMX dashboar
 
 ### What grows coverage & filters slop
 
-- **Scheduled discovery** (`discover-all`, daily) keeps the board registry full automatically — the biggest coverage lever, since the engine already polls 24 ATS platforms but the registry was only grown by manual runs. Channels: Common Crawl (paginated), urlscan, HN, broadened SearXNG dorks (all ATS × niche keywords), expanded GitHub list ingestion, **crt.sh** custom-domain careers enumeration, and **JSON-LD `JobPosting`** harvesting. The daily run also **reresolves** unrecognized `listing` jobs back into real boards, and an **opt-in GitHub code-search** channel (needs `GITHUB_TOKEN`, off by default) harvests ATS tokens at scale.
+- **Scheduled discovery** (`discover-all`, daily) keeps the board registry full automatically — the biggest coverage lever, since the engine already polls 24 ATS platforms but the registry was only grown by manual runs. Channels: Common Crawl (paginated), urlscan, HN, broadened SearXNG dorks (all ATS × niche keywords), expanded GitHub list ingestion, **crt.sh** custom-domain careers enumeration, and **JSON-LD `JobPosting`** harvesting. The daily run also **reresolves** unrecognized `listing` jobs back into real boards, and an **opt-in GitHub code-search** channel (needs `GITHUB_TOKEN`, off by default) harvests ATS tokens at scale. `discover-all` additionally runs the keyless **external-listing ingestors** (LinkedIn guest API, keyless USAJobs, big-company careers APIs, public university-page harvest, Google-Jobs-via-JSON-LD, and a keyless Indeed browser scrape) so roles posted only on the aggregators get pulled too — each fails soft and feeds any recovered ATS board into the registry. None of these require a login. Only **Handshake** stays out of the automatic run: its student postings are gated behind a university SSO login, so it's inert unless you supply a saved session. Note the Indeed full-scrape launches a browser and can hit IP-level rate limits at scale (set `HTTP_PROXY` or lower `INDEED_MAX_PAGES` if needed).
 - **Anti-slop quality reading** scores every job with free heuristics at ingest (ghost/agency/MLM/content-free/evergreen flags + a per-job `sightings` open-duration log), then an LLM reads only the *borderline* jobs (`score-quality`) and assigns a legitimacy verdict. The dashboard hides confirmed slop by default (toggle to show — **nothing is ever deleted**), and notifications skip it.
 
 The dashboard is sortable by **discovery score**, **fit**, freshness, deadline, and more, with substring/ATS/remote filters and CSV export. A **Contacts** view lists discovered people per company with confidence-labelled emails and its own CSV export.
