@@ -42,8 +42,8 @@ recover the real ATS board behind each apply link where it exists (`reresolve` u
 | Source | Access | Notes |
 |---|---|---|
 | **LinkedIn** | keyless guest jobs API | rate-limited; personal single-user use |
-| **USAJobs** (federal) | **keyless** (public HTML, no API key) | Pathways / student-trainee internships |
-| **Big-company sites** | keyless JSON careers APIs | Google, Amazon, Microsoft, Apple, Netflix (extensible) |
+| **USAJobs** (federal) | **keyless** (stealth browser; page is JS-rendered) | Pathways / student-trainee internships; no API key |
+| **Big-company sites** | keyless JSON careers APIs | Amazon, Netflix work keyless; Google (API retired), Microsoft (moved), Apple (bot-walled) are opt-in |
 | **University portals** | public-page JSON-LD harvest | recovers employer/ATS boards schools expose publicly |
 | **Google Jobs** | approximated via JSON-LD + SearXNG | no direct SERP scraping |
 | **Indeed** | keyless (stealth browser, **no login**) | on by default; full scrape, best-effort/bot-walled |

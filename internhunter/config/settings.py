@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     enable_scheduled_llm_rating: bool = True  # LLM deep-read (uses Claude quota)
     rating_interval_min: int = 360  # every 6h (aligns with Claude usage-limit windows)
     llm_rating_top_k: int = 300  # jobs LLM-rated per scheduled batch
-    usajobs_api_key: str = ""  # unused — the USAJobs ingestor is keyless (scrapes public HTML)
+    usajobs_api_key: str = ""  # unused (keyless ethos) — USAJobs goes through the browser
     findwork_api_key: str = ""
 
     # --- external listing ingestors (aggregators / custom careers sites) ---
@@ -62,10 +62,13 @@ class Settings(BaseSettings):
     # LinkedIn keyless guest jobs API.
     linkedin_locations: str = "United States"  # comma list, one guest-search pass each
     linkedin_max_pages: int = 0  # 25 cards per page; 0 = full scrape
-    # USAJobs federal — keyless public-HTML scrape (no api key).
-    usajobs_max_pages: int = 0  # 0 = full scrape
+    # USAJobs federal — keyless via the stealth browser (the public HTML is JS-rendered).
+    usajobs_max_pages: int = 0
     # Big-company custom career sites (keyless JSON APIs). Comma list; empty = all known.
-    bigco_companies: str = "google,amazon,microsoft,apple,netflix"
+    # Default is the two whose public JSON APIs actually work keyless; google (API
+    # deprecated), microsoft (moved + broken TLS cert), and apple (Akamai bot-wall) are
+    # opt-in only — add them here if/when their endpoints become reachable again.
+    bigco_companies: str = "amazon,netflix"
     # University career portals: public-page JSON-LD harvest seed list.
     university_list_path: Path | None = None  # None -> registry/universities.jsonl
     # Indeed — keyless stealth-browser scrape (no login; needs a browser only to clear the
