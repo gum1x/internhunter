@@ -186,16 +186,22 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
     This is what the scheduler runs daily so the registry stops being starved between
     manual CLI runs. Each channel fails soft and is reported in ``per_method``.
     """
+    from internhunter.discovery.bigco import ingest_bigco
     from internhunter.discovery.common_crawl import discover_from_common_crawl
     from internhunter.discovery.edgar import discover_from_edgar
     from internhunter.discovery.fingerprint import detection_to_board_ref
+    from internhunter.discovery.google_jobs import ingest_google_jobs
     from internhunter.discovery.hackernews import discover_from_hackernews
+    from internhunter.discovery.indeed import ingest_indeed
     from internhunter.discovery.internship_lists import ingest_internship_lists
     from internhunter.discovery.job_apis import ingest_job_apis
+    from internhunter.discovery.linkedin import ingest_linkedin
     from internhunter.discovery.merge import merge_boards
     from internhunter.discovery.reresolve import reresolve_listings
     from internhunter.discovery.similar import discover_similar_companies
+    from internhunter.discovery.university import ingest_universities
     from internhunter.discovery.urlscan import discover_from_urlscan
+    from internhunter.discovery.usajobs import ingest_usajobs
     from internhunter.discovery.wayback import discover_from_wayback
 
     resolved = settings or get_settings()
@@ -244,9 +250,17 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
     summary.boards_seen += merged.existing
 
     # List + API ingestors manage their own context and upsert jobs directly.
+    # Keyless (no-login) ingestors. Indeed is keyless too (it only needs a browser to clear the
+    # bot-wall) so it runs here; handshake needs a login session and stays out of the daily run.
     for name, coro in (
         ("internship_lists", ingest_internship_lists(resolved)),
         ("job_apis", ingest_job_apis(resolved)),
+        ("linkedin", ingest_linkedin(resolved)),
+        ("usajobs", ingest_usajobs(resolved)),
+        ("bigco", ingest_bigco(resolved)),
+        ("university", ingest_universities(resolved)),
+        ("google_jobs", ingest_google_jobs(resolved)),
+        ("indeed", ingest_indeed(resolved)),
     ):
         try:
             _entries, jobs, new_boards = await coro
