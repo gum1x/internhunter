@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx
 
+from internhunter.discovery import hackernews
 from internhunter.discovery.hackernews import (
     _item_url,
     _search_url,
@@ -92,6 +93,46 @@ async def test_discover_handles_deeply_nested_thread(fake_fetch_context: Any) ->
 
     detections = await discover_from_hackernews(ctx, thread_id=9, max_comments=5000)
     assert ("lever", "deepco") in {(d.ats, d.token) for d in detections}
+
+
+async def test_discover_caps_total_comments(
+    fake_fetch_context: Any, monkeypatch: Any
+) -> None:
+    ctx = fake_fetch_context
+    # Small global cap; many threads each with more comments than the cap allows.
+    monkeypatch.setattr(hackernews, "_MAX_TOTAL_COMMENTS", 30)
+
+    scanned: list[str] = []
+
+    def spy_detect(text: str) -> list[Any]:
+        scanned.append(text)
+        return []
+
+    monkeypatch.setattr(hackernews, "detect_from_html", spy_detect)
+
+    thread_ids = list(range(200, 220))
+    ctx.responses[_search_url(60)] = httpx.Response(
+        200,
+        text=json.dumps(
+            {
+                "hits": [
+                    {"objectID": str(tid), "title": "Ask HN: Who is hiring?"}
+                    for tid in thread_ids
+                ]
+            }
+        ),
+    )
+    for tid in thread_ids:
+        ctx.responses[_item_url(tid)] = httpx.Response(
+            200,
+            text=json.dumps(
+                {"children": [{"text": f"comment-{i}", "children": []} for i in range(50)]}
+            ),
+        )
+
+    await discover_from_hackernews(ctx, months=20, max_comments=1000)
+    # Total comments handed to the detector never exceeds the global cap.
+    assert len(scanned) <= 30
 
 
 async def test_discover_dedupes(fake_fetch_context: Any) -> None:

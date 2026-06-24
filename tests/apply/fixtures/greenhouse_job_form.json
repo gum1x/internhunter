@@ -1,0 +1,8 @@
+{
+  "questions": [
+    {"label": "First Name", "required": true, "fields": [{"name": "first_name", "type": "input_text"}]},
+    {"label": "Email", "required": true, "fields": [{"name": "email", "type": "input_text"}]},
+    {"label": "Resume", "required": true, "fields": [{"name": "resume", "type": "input_file"}]},
+    {"label": "Why this company?", "required": true, "fields": [{"name": "question_1", "type": "textarea"}]}
+  ]
+}

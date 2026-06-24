@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 from typing import Protocol
 
@@ -68,11 +69,23 @@ class EmbeddingCache:
         path = self._path(text)
         if not path.exists():
             return None
-        loaded: NDArray[np.float32] = np.load(path).astype(np.float32)
+        try:
+            loaded: NDArray[np.float32] = np.load(path).astype(np.float32)
+        except (ValueError, OSError, EOFError):
+            # Corrupt / partially-written file: treat as a cache miss, re-encode.
+            return None
+        if loaded.ndim != 1 or loaded.size == 0:
+            return None
         return loaded
 
     def set(self, text: str, vector: NDArray[np.float32]) -> None:
-        np.save(self._path(text), vector.astype(np.float32))
+        # Write to a temp file then atomically rename, so an interrupted write can
+        # never leave a half-written (permanently corrupt) .npy behind.
+        path = self._path(text)
+        # Keep the .npy suffix so np.save doesn't append another one.
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp.npy")
+        np.save(tmp, vector.astype(np.float32))
+        os.replace(tmp, path)
 
 
 def embed_texts(
@@ -86,10 +99,28 @@ def embed_texts(
         return normalize(encoder.encode(texts))
 
     vectors: list[NDArray[np.float32] | None] = [cache.get(text) for text in texts]
-    missing = [i for i, vec in enumerate(vectors) if vec is None]
-    if missing:
-        fresh = normalize(encoder.encode([texts[i] for i in missing]))
-        for slot, vec in zip(missing, fresh, strict=True):
+
+    def _encode_into(slots: list[int]) -> None:
+        if not slots:
+            return
+        fresh = normalize(encoder.encode([texts[i] for i in slots]))
+        for slot, vec in zip(slots, fresh, strict=True):
             cache.set(texts[slot], vec)
             vectors[slot] = vec
+
+    missing = [i for i, vec in enumerate(vectors) if vec is None]
+    _encode_into(missing)
+
+    # A cached vector whose dim disagrees with the others (e.g. a same-key corrupt
+    # file or a stale model output) would crash vstack. Re-encode such outliers
+    # instead of killing the run.
+    dims = [vec.shape[-1] for vec in vectors if vec is not None]
+    if dims:
+        expected_dim = max(set(dims), key=dims.count)  # modal dim
+        wrong_dim = [
+            i
+            for i, vec in enumerate(vectors)
+            if vec is not None and vec.shape[-1] != expected_dim
+        ]
+        _encode_into(wrong_dim)
     return np.vstack([vec for vec in vectors if vec is not None]).astype(np.float32)

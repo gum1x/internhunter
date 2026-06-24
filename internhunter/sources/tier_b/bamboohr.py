@@ -43,6 +43,7 @@ class BambooHrSource(Source):
 
     async def fetch(self, ref: BoardRef, ctx: FetchContext) -> AsyncIterator[RawPosting]:
         payload = await ctx.get_json(self.board_url(ref))
+        payload = payload if isinstance(payload, dict) else {}
         for job in payload.get("result", []):
             yield RawPosting(raw=job)
 

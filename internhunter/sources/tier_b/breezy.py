@@ -55,6 +55,8 @@ class BreezyHrSource(Source):
 
     async def fetch(self, ref: BoardRef, ctx: FetchContext) -> AsyncIterator[RawPosting]:
         payload = await ctx.get_json(self.board_url(ref))
+        if not isinstance(payload, list):
+            return
         for position in payload:
             yield RawPosting(raw=position)
 

@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     per_host_concurrency: int = 4
     default_user_agent: str = "InternHunter/0.1 (+https://github.com/internhunter)"
     request_timeout: float = 30.0
+    # Hard cap on a single response body. Bounds memory, the on-disk cache, and the
+    # downstream parsers/regexes against hostile oversized responses (~25 MB default).
+    max_response_bytes: int = 25_000_000
     cache_dir: Path = Path(".cache")
     retry_max_attempts: int = 4
     embed_model: str = "all-MiniLM-L6-v2"
@@ -131,6 +134,14 @@ class Settings(BaseSettings):
     sbir_api_url: str = "https://api.www.sbir.gov/public/api/awards"
     # dol.gov / sbir.gov 403 plain bots; a descriptive UA (ideally with a contact email) helps.
     disclosure_user_agent: str = ""
+
+    # --- Auto-apply (off by default; submits real applications under your name) ---
+    enable_auto_apply: bool = False           # master kill switch
+    auto_apply_min_fit: float = 0.75          # stricter than notify_min_fit; fit_score is 0-1 here
+    auto_apply_daily_cap: int = 15            # max submitted applications per rolling 24h
+    auto_apply_per_company_cap: int = 1       # max auto-applications per company
+    auto_apply_delay_seconds: float = 20.0    # randomized pacing floor between submissions
+    auto_apply_stop_file: Path = Path(".auto_apply_stop")  # runtime kill switch (presence = stop)
 
 
 def get_settings() -> Settings:

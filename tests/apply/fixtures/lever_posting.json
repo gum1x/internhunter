@@ -1,0 +1,10 @@
+{
+  "id": "abc-123",
+  "text": "Software Engineering Intern",
+  "applicationQuestions": [
+    {"text": "Full name", "required": true, "type": "text", "name": "name"},
+    {"text": "Email", "required": true, "type": "text", "name": "email"},
+    {"text": "Resume", "required": true, "type": "file", "name": "resume"},
+    {"text": "Describe a project you are proud of", "required": true, "type": "textarea", "name": "card_0"}
+  ]
+}

@@ -30,7 +30,7 @@
         {% if ic and ic >= 70 %}<span class="badge tone-green" title="confirmed on multiple platforms">✓ {{ "%.0f"|format(ic) }}</span>{% elif ic %}{{ "%.0f"|format(ic) }}{% endif %}
       </td>
       <td>
-        {% if c.linkedin_url %}<a class="chip" href="{{ c.linkedin_url }}" target="_blank" rel="noopener">linkedin</a>{% endif %}
+        {% if c.linkedin_url %}<a class="chip" href="{{ c.linkedin_url | safe_url }}" target="_blank" rel="noopener">linkedin</a>{% endif %}
         {% for ch in channels.get(c.id, []) %}
         <a class="chip badge-{{ ch.label }}" href="{{ ch.value if ch.value.startswith('http') else '#' }}" target="_blank" rel="noopener" title="{{ ch.source }} · {{ '%.0f'|format(ch.confidence) if ch.confidence is not none else '' }}">{{ ch.kind }}</a>
         {% endfor %}

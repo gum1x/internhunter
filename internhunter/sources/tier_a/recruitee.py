@@ -42,6 +42,7 @@ class RecruiteeSource(Source):
 
     async def fetch(self, ref: BoardRef, ctx: FetchContext) -> AsyncIterator[RawPosting]:
         payload = await ctx.get_json(self.board_url(ref))
+        payload = payload if isinstance(payload, dict) else {}
         for offer in payload.get("offers", []):
             yield RawPosting(raw=offer)
 

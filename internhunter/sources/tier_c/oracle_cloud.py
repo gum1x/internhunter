@@ -41,6 +41,7 @@ class OracleCloudSource(Source):
 
     async def fetch(self, ref: BoardRef, ctx: FetchContext) -> AsyncIterator[RawPosting]:
         data = await ctx.get_json(self.board_url(ref))
+        data = data if isinstance(data, dict) else {}
         for item in data.get("items", []):
             requisitions = item.get("requisitionList")
             if isinstance(requisitions, list):
