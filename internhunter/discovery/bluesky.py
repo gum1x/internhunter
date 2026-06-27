@@ -14,7 +14,9 @@ from internhunter.core.fetch import FetchContext
 from internhunter.discovery.listing_common import ListingJob, ingest_listings
 from internhunter.discovery.social_parsing import extract_company, first_url, title_from_text
 
-_SEARCH = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts"
+# Use api.bsky.app (the AppView) not public.api.bsky.app (a CDN alias that WAF-blocks the
+# searchPosts path from datacenter IPs). searchPosts is keyless on the AppView. Verified live.
+_SEARCH = "https://api.bsky.app/xrpc/app.bsky.feed.searchPosts"
 _DEFAULT_QUERIES = ("internship", '"summer 2026" intern', '"co-op" hiring intern')
 
 

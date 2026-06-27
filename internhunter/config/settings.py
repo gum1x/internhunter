@@ -83,6 +83,10 @@ class Settings(BaseSettings):
     bluesky_queries: str = ""
     # Reddit keyless JSON subreddits (comma list; empty = defaults).
     reddit_subreddits: str = "internships,csMajors,cscareerquestions"
+    # EURES (EU public jobs) — keyless POST search; pages per keyword pass.
+    eures_max_pages: int = 5
+    # Bundesagentur für Arbeit (Germany) — keyless (public X-API-Key constant).
+    arbeitsagentur_max_pages: int = 5
     # Web Data Commons schema.org JobPosting dataset (gzip N-Quads). Empty = OFF (heavy/monthly);
     # set to the verified dataset URL from webdatacommons.org/structureddata to enable.
     web_data_commons_url: str = ""

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import types
+from typing import Any
 
 import httpx
 import pytest
@@ -18,6 +19,41 @@ def test_board_resolve_via_cname(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(board_resolve, "_cname_chain", fake_chain)
     dets = board_resolve.resolve_domain_boards("acme.com")
     assert ("recruitee", "acme") in {(d.ats, d.token) for d in dets}
+
+
+def test_gitlab_commits_keyless(monkeypatch: pytest.MonkeyPatch) -> None:
+    from internhunter.contacts.people import gitlab_commits
+
+    class _Resp:
+        def __init__(self, payload: Any) -> None:
+            self.status_code = 200
+            self._p = payload
+
+        def json(self) -> Any:
+            return self._p
+
+    class _Client:
+        def __enter__(self) -> _Client:
+            return self
+
+        def __exit__(self, *a: object) -> None:
+            return None
+
+        def get(self, url: str, **kw: Any) -> _Resp:
+            if url.endswith("/groups/acme/projects"):
+                return _Resp([{"id": 7}])
+            if url.endswith("/projects/7/repository/commits"):
+                return _Resp([
+                    {"author_name": "Jane", "author_email": "jane@acme.com"},
+                    {"author_name": "Ext", "author_email": "ext@other.com"},
+                    {"author_name": "Bot", "author_email": "git@noreply.acme.com"},
+                ])
+            return _Resp([])
+
+    monkeypatch.setattr(httpx, "Client", lambda *a, **k: _Client())
+    people = gitlab_commits.discover_people_gitlab_commits("acme", "acme.com")
+    assert [p.known_email for p in people] == ["jane@acme.com"]
+    assert people[0].person_source == "gitlab_commit"
 
 
 def test_git_commits_filters_domain(monkeypatch: pytest.MonkeyPatch) -> None:

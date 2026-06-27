@@ -4,10 +4,13 @@ from typing import Any
 
 import pytest
 
+from internhunter.discovery.arbeitsagentur import parse_results as arbeit_parse
 from internhunter.discovery.bluesky import parse_posts
 from internhunter.discovery.crt_bulk import discover_from_crt_bulk, hosts_from_rows
+from internhunter.discovery.eures import parse_vacancies
 from internhunter.discovery.fingerprint import detect_from_url
-from internhunter.discovery.reddit import parse_listing
+from internhunter.discovery.idealist import parse_hits
+from internhunter.discovery.reddit import _fetch_sub, parse_listing
 from internhunter.discovery.web_data_commons import detections_from_nquads
 
 
@@ -65,6 +68,71 @@ def test_reddit_parse_listing_filters_and_links() -> None:
     assert len(jobs) == 1
     assert jobs[0].url == "https://jobs.lever.co/acme/9"
     assert jobs[0].source == "reddit:internships"
+
+
+def test_eures_parse_vacancies() -> None:
+    data = {"jvs": [
+        {"id": "abc123", "title": "Marketing Internship",
+         "employer": {"name": "Acme EU"}, "locationMap": {"DE": ["DE1"]},
+         "creationDate": 1700000000000, "description": "join us"},
+        {"title": "no id -> skipped"},
+    ]}
+    jobs = parse_vacancies(data)
+    assert len(jobs) == 1
+    assert jobs[0].company == "Acme EU"
+    assert jobs[0].url == "https://europa.eu/eures/portal/jv-se/jv-details/abc123?lang=en"
+    assert jobs[0].source == "eures"
+
+
+def test_idealist_parse_hits() -> None:
+    data = {"hits": [
+        {"name": "Nonprofit Intern", "orgName": "Good Org",
+         "url": {"en": "/en/internship/abc?x=1", "es": "/es/..."},
+         "city": "New York", "stateStr": "NY", "country": "US",
+         "published": 1700000000, "description": "help", "type": "INTERNSHIP",
+         "objectID": "1"},
+        {"name": "no url"},
+    ]}
+    jobs = parse_hits(data)
+    assert len(jobs) == 1
+    assert jobs[0].url == "https://www.idealist.org/en/internship/abc"
+    assert jobs[0].company == "Good Org"
+    assert jobs[0].location == "New York, NY, US"
+
+
+def test_arbeitsagentur_parse_results() -> None:
+    data = {"ergebnisliste": [
+        {"stellenangebotsTitel": "Praktikant Software", "firma": "Acme GmbH",
+         "referenznummer": "R1", "arbeitsort": {"ort": "Berlin"},
+         "datumErsteVeroeffentlichung": "2026-05-01"},
+        {"stellenangebotsTitel": "ext", "externeURL": "https://acme.de/apply", "firma": "X"},
+    ]}
+    jobs = arbeit_parse(data)
+    assert len(jobs) == 2
+    r1 = next(j for j in jobs if j.company == "Acme GmbH")
+    assert r1.url == "https://www.arbeitsagentur.de/jobsuche/jobdetail/R1"
+    assert r1.location == "Berlin"
+    assert any(j.url == "https://acme.de/apply" for j in jobs)
+
+
+async def test_reddit_pullpush_wrapper() -> None:
+    # PullPush returns a flat {"data": [post,...]}; _fetch_sub must re-wrap it for parse_listing.
+    class _Ctx:
+        class logger:
+            @staticmethod
+            def debug(*a: object, **k: object) -> None: ...
+
+        async def get_json(self, url: str, **kw: object) -> object:
+            return {"data": [
+                {"title": "Summer 2026 SWE Intern",
+                 "selftext": "apply https://jobs.lever.co/acme/9",
+                 "url": "https://reddit.com/r/x", "permalink": "/r/x",
+                 "created_utc": 1700000000},
+            ]}
+
+    wrapped = await _fetch_sub(_Ctx(), "internships")  # type: ignore[arg-type]
+    jobs = parse_listing(wrapped, "internships")
+    assert len(jobs) == 1 and jobs[0].url == "https://jobs.lever.co/acme/9"
 
 
 def test_web_data_commons_nquads_parse() -> None:
