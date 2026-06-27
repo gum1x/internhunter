@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     # until the source runs dry (bounded by an internal safety ceiling per module).
     # LinkedIn keyless guest jobs API.
     linkedin_locations: str = "United States"  # comma list, one guest-search pass each
+    linkedin_keywords: str = "intern,internship,new grad,co-op"  # guest-API keyword variants
     linkedin_max_pages: int = 0  # 25 cards per page; 0 = full scrape
     # USAJobs federal — keyless public-HTML scrape (no api key).
     usajobs_max_pages: int = 0  # 0 = full scrape
@@ -73,6 +74,28 @@ class Settings(BaseSettings):
     # Handshake — authenticated, opt-in. Saved Playwright storage-state; inert if missing.
     handshake_session: Path = Path("handshake_session.json")
     handshake_max_pages: int = 5
+
+    # --- Wave 1: more discovery (all keyless) ---
+    # Bulk certificate-transparency enumeration (every company on a subdomain-per-company ATS).
+    enable_crt_bulk: bool = True
+    crt_bulk_max_per_ats: int = 5000
+    # Bluesky keyless AT-Protocol post search ('|'-separated queries; empty = defaults).
+    bluesky_queries: str = ""
+    # Reddit keyless JSON subreddits (comma list; empty = defaults).
+    reddit_subreddits: str = "internships,csMajors,cscareerquestions"
+    # EURES (EU public jobs) — keyless POST search.
+    eures_max_pages: int = 5
+    # Web Data Commons schema.org JobPosting dataset (gzip N-Quads). Empty = OFF (heavy/monthly);
+    # set to the verified dataset URL from webdatacommons.org/structureddata to enable.
+    web_data_commons_url: str = ""
+    # DNS CNAME -> ATS board resolution.
+    board_resolve_limit: int = 500
+    # git-commit contact mining: bare-clone this many top repos per company.
+    git_commit_max_repos: int = 5
+
+    # --- Wave 1: in-process anti-block (no proxies, $0) ---
+    # On a 403 (TLS-level bot wall), retry GETs once with a browser fingerprint via curl_cffi.
+    enable_curl_cffi: bool = True
 
     # --- anti-slop quality reading (Workstream B) ---
     quality_top_k: int = 40  # LLM judge reads at most this many borderline jobs per run

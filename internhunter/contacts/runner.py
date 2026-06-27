@@ -155,6 +155,27 @@ async def _discover_people(
         except Exception as exc:
             ctx.logger.debug("staffspy failed for {}: {}", company_name, exc)
 
+    if "gitlab" in methods:
+        try:
+            from internhunter.contacts.people.gitlab import discover_people_gitlab
+
+            people += await asyncio.to_thread(
+                discover_people_gitlab, target.company_slug, domain
+            )
+        except Exception as exc:
+            ctx.logger.debug("gitlab failed for {}: {}", target.company_slug, exc)
+
+    if "git_commits" in methods:
+        try:
+            from internhunter.contacts.people.git_commits import discover_people_git_commits
+
+            people += await asyncio.to_thread(
+                discover_people_git_commits, target.company_slug, domain,
+                settings.github_token or None, settings.git_commit_max_repos,
+            )
+        except Exception as exc:
+            ctx.logger.debug("git_commits failed for {}: {}", target.company_slug, exc)
+
     if "ats_raw" in methods:
         try:
             from internhunter.contacts.people.ats_raw import discover_people_ats_raw

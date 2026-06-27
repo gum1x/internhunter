@@ -106,6 +106,20 @@ def _cmd_discover(args: argparse.Namespace) -> None:
                 if not args.url:
                     raise SystemExit("--url (careers page) is required for --method jsonld")
                 return await discover_from_jsonld(ctx, args.url)
+            if args.method == "crt_bulk":
+                from internhunter.discovery.crt_bulk import discover_from_crt_bulk
+
+                return await discover_from_crt_bulk(ctx)
+            if args.method == "board_resolve":
+                from internhunter.discovery.board_resolve import discover_from_board_resolve
+
+                return await discover_from_board_resolve(ctx, settings)
+            if args.method == "web_data_commons":
+                from internhunter.discovery.web_data_commons import (
+                    discover_from_web_data_commons,
+                )
+
+                return await discover_from_web_data_commons(ctx, settings)
             if args.method == "wayback":
                 from internhunter.discovery.wayback import discover_from_wayback
 
@@ -325,6 +339,10 @@ def _listing_ingestors() -> dict[str, tuple[str, str, str]]:
                         "ingest_google_jobs"),
         "indeed": ("indeed", "internhunter.discovery.indeed", "ingest_indeed"),
         "handshake": ("handshake", "internhunter.discovery.handshake", "ingest_handshake"),
+        "bluesky": ("bluesky", "internhunter.discovery.bluesky", "ingest_bluesky"),
+        "reddit": ("reddit", "internhunter.discovery.reddit", "ingest_reddit"),
+        "eures": ("eures", "internhunter.discovery.eures", "ingest_eures"),
+        "idealist": ("idealist", "internhunter.discovery.idealist", "ingest_idealist"),
     }
 
 
@@ -332,7 +350,7 @@ def _listing_ingestors() -> dict[str, tuple[str, str, str]]:
 # a browser to clear the bot-wall). Only handshake stays explicit-only — it requires a saved
 # university login session and is inert without one.
 _ALL_LISTING_SOURCES = ("github", "apis", "linkedin", "usajobs", "bigco", "university",
-                        "google_jobs", "indeed")
+                        "google_jobs", "indeed", "bluesky", "reddit", "eures", "idealist")
 
 
 def _cmd_ingest(args: argparse.Namespace) -> None:
@@ -418,7 +436,8 @@ def main() -> None:
         "--source",
         choices=[
             "github", "apis", "linkedin", "usajobs", "bigco", "university", "google_jobs",
-            "indeed", "handshake", "oflc", "perm", "sbir", "all",
+            "indeed", "handshake", "bluesky", "reddit", "eures", "idealist",
+            "oflc", "perm", "sbir", "all",
         ],
         default="all",
     )
@@ -436,6 +455,7 @@ def main() -> None:
             "sitemap", "common_crawl", "searxng", "hackernews", "urlscan",
             "yc", "vc", "crtsh", "jsonld", "wayback", "similar", "edgar",
             "github_code", "greenhouse_frontier",
+            "crt_bulk", "board_resolve", "web_data_commons",
         ],
         required=True,
     )
@@ -464,7 +484,8 @@ def main() -> None:
     find_contacts.add_argument(
         "--methods",
         default=None,
-        help="comma list: searxng,github,team,staffspy,ats_raw,registries,gov_disclosure",
+        help=("comma list: searxng,github,gitlab,git_commits,team,staffspy,ats_raw,"
+              "registries,gov_disclosure"),
     )
     find_contacts.add_argument("--verify", action="store_true", help="run holehe verification")
 

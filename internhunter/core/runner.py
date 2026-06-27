@@ -187,16 +187,22 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
     manual CLI runs. Each channel fails soft and is reported in ``per_method``.
     """
     from internhunter.discovery.bigco import ingest_bigco
+    from internhunter.discovery.bluesky import ingest_bluesky
+    from internhunter.discovery.board_resolve import discover_from_board_resolve
     from internhunter.discovery.common_crawl import discover_from_common_crawl
+    from internhunter.discovery.crt_bulk import discover_from_crt_bulk
     from internhunter.discovery.edgar import discover_from_edgar
+    from internhunter.discovery.eures import ingest_eures
     from internhunter.discovery.fingerprint import detection_to_board_ref
     from internhunter.discovery.google_jobs import ingest_google_jobs
     from internhunter.discovery.hackernews import discover_from_hackernews
+    from internhunter.discovery.idealist import ingest_idealist
     from internhunter.discovery.indeed import ingest_indeed
     from internhunter.discovery.internship_lists import ingest_internship_lists
     from internhunter.discovery.job_apis import ingest_job_apis
     from internhunter.discovery.linkedin import ingest_linkedin
     from internhunter.discovery.merge import merge_boards
+    from internhunter.discovery.reddit import ingest_reddit
     from internhunter.discovery.reresolve import reresolve_listings
     from internhunter.discovery.similar import discover_similar_companies
     from internhunter.discovery.university import ingest_universities
@@ -216,7 +222,12 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
             "wayback": discover_from_wayback(ctx),
             "similar": discover_similar_companies(ctx, resolved),
             "edgar": discover_from_edgar(ctx, resolved),
+            "board_resolve": discover_from_board_resolve(ctx, resolved),
         }
+        if resolved.enable_crt_bulk:
+            detection_channels["crt_bulk"] = discover_from_crt_bulk(
+                ctx, max_per_ats=resolved.crt_bulk_max_per_ats
+            )
         results = await asyncio.gather(
             *detection_channels.values(), return_exceptions=True
         )
@@ -261,6 +272,10 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
         ("university", ingest_universities(resolved)),
         ("google_jobs", ingest_google_jobs(resolved)),
         ("indeed", ingest_indeed(resolved)),
+        ("bluesky", ingest_bluesky(resolved)),
+        ("reddit", ingest_reddit(resolved)),
+        ("eures", ingest_eures(resolved)),
+        ("idealist", ingest_idealist(resolved)),
     ):
         try:
             _entries, jobs, new_boards = await coro
