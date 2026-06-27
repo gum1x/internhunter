@@ -341,8 +341,6 @@ def _listing_ingestors() -> dict[str, tuple[str, str, str]]:
         "handshake": ("handshake", "internhunter.discovery.handshake", "ingest_handshake"),
         "bluesky": ("bluesky", "internhunter.discovery.bluesky", "ingest_bluesky"),
         "reddit": ("reddit", "internhunter.discovery.reddit", "ingest_reddit"),
-        "eures": ("eures", "internhunter.discovery.eures", "ingest_eures"),
-        "idealist": ("idealist", "internhunter.discovery.idealist", "ingest_idealist"),
     }
 
 
@@ -350,7 +348,7 @@ def _listing_ingestors() -> dict[str, tuple[str, str, str]]:
 # a browser to clear the bot-wall). Only handshake stays explicit-only — it requires a saved
 # university login session and is inert without one.
 _ALL_LISTING_SOURCES = ("github", "apis", "linkedin", "usajobs", "bigco", "university",
-                        "google_jobs", "indeed", "bluesky", "reddit", "eures", "idealist")
+                        "google_jobs", "indeed", "bluesky", "reddit")
 
 
 def _cmd_ingest(args: argparse.Namespace) -> None:
@@ -436,7 +434,7 @@ def main() -> None:
         "--source",
         choices=[
             "github", "apis", "linkedin", "usajobs", "bigco", "university", "google_jobs",
-            "indeed", "handshake", "bluesky", "reddit", "eures", "idealist",
+            "indeed", "handshake", "bluesky", "reddit",
             "oflc", "perm", "sbir", "all",
         ],
         default="all",
@@ -484,7 +482,7 @@ def main() -> None:
     find_contacts.add_argument(
         "--methods",
         default=None,
-        help=("comma list: searxng,github,gitlab,git_commits,team,staffspy,ats_raw,"
+        help=("comma list: searxng,github,git_commits,team,staffspy,ats_raw,"
               "registries,gov_disclosure"),
     )
     find_contacts.add_argument("--verify", action="store_true", help="run holehe verification")

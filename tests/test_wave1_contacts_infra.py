@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import sys
 import types
-from typing import Any
 
 import httpx
 import pytest
 
-from internhunter.contacts.people import git_commits, gitlab
+from internhunter.contacts.people import git_commits
 from internhunter.core import fetch as fetchmod
 from internhunter.discovery import board_resolve
 
@@ -19,25 +18,6 @@ def test_board_resolve_via_cname(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(board_resolve, "_cname_chain", fake_chain)
     dets = board_resolve.resolve_domain_boards("acme.com")
     assert ("recruitee", "acme") in {(d.ats, d.token) for d in dets}
-
-
-def test_gitlab_people(monkeypatch: pytest.MonkeyPatch) -> None:
-    class _Resp:
-        status_code = 200
-
-        def json(self) -> Any:
-            return [
-                {"username": "jane", "name": "Jane Doe", "public_email": "jane@acme.com"},
-                {"username": "bob", "name": "Bob", "public_email": "bob@gmail.com"},
-            ]
-
-    monkeypatch.setattr(httpx, "get", lambda *a, **k: _Resp())
-    people = gitlab.discover_people_gitlab("acme", "acme.com")
-    assert {p.full_name for p in people} == {"Jane Doe", "Bob"}
-    jane = next(p for p in people if p.full_name == "Jane Doe")
-    assert jane.known_email == "jane@acme.com"  # on-domain kept
-    bob = next(p for p in people if p.full_name == "Bob")
-    assert bob.known_email is None  # off-domain dropped
 
 
 def test_git_commits_filters_domain(monkeypatch: pytest.MonkeyPatch) -> None:

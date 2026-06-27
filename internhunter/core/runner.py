@@ -192,11 +192,9 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
     from internhunter.discovery.common_crawl import discover_from_common_crawl
     from internhunter.discovery.crt_bulk import discover_from_crt_bulk
     from internhunter.discovery.edgar import discover_from_edgar
-    from internhunter.discovery.eures import ingest_eures
     from internhunter.discovery.fingerprint import detection_to_board_ref
     from internhunter.discovery.google_jobs import ingest_google_jobs
     from internhunter.discovery.hackernews import discover_from_hackernews
-    from internhunter.discovery.idealist import ingest_idealist
     from internhunter.discovery.indeed import ingest_indeed
     from internhunter.discovery.internship_lists import ingest_internship_lists
     from internhunter.discovery.job_apis import ingest_job_apis
@@ -274,8 +272,6 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
         ("indeed", ingest_indeed(resolved)),
         ("bluesky", ingest_bluesky(resolved)),
         ("reddit", ingest_reddit(resolved)),
-        ("eures", ingest_eures(resolved)),
-        ("idealist", ingest_idealist(resolved)),
     ):
         try:
             _entries, jobs, new_boards = await coro

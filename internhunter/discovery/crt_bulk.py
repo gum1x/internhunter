@@ -39,6 +39,17 @@ _ATS_DOMAINS: tuple[str, ...] = (
 )
 
 
+# Infra/service subdomains that aren't company boards — without this, crt.sh noise like
+# s3.recruitee.com or status.breezy.hr would register as bogus "boards".
+_INFRA_TOKENS = frozenset({
+    "s3", "www", "api", "cdn", "assets", "static", "img", "images", "media", "files",
+    "mail", "smtp", "imap", "pop", "ftp", "ns1", "ns2", "mx", "email", "blog", "status",
+    "help", "support", "docs", "app", "apps", "admin", "dev", "staging", "stage", "test",
+    "demo", "go", "get", "info", "download", "downloads", "cname", "track", "links", "link",
+    "auth", "login", "sso", "id", "account", "accounts", "portal", "secure", "vpn",
+})
+
+
 def _crtsh_url(domain: str) -> str:
     return f"https://crt.sh/?{urlencode({'q': f'%.{domain}', 'output': 'json'})}"
 
@@ -75,7 +86,7 @@ async def discover_from_crt_bulk(
             continue
         for host in hosts_from_rows(rows, domain)[:max_per_ats]:
             det = detect_from_url(f"https://{host}")
-            if det is None:
+            if det is None or det.token.lower() in _INFRA_TOKENS or len(det.token) < 2:
                 continue
             key = (det.ats, det.token)
             if key in seen:
