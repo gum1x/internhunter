@@ -128,6 +128,12 @@ class Settings(BaseSettings):
     greenhouse_frontier_interval_min: int = 60  # scheduled cadence (freshness lever)
     enable_greenhouse_frontier: bool = True  # independent of the daily discover-all toggle
 
+    # reresolve re-fetches up to 2000 ats='listing' URLs; many are slow JS career portals
+    # clustered on a few hosts (throttled by per_host_concurrency), so the full pass can run
+    # ~30min and stall discover-all. Cap the wall-clock; unprocessed rows stay 'listing' and
+    # get retried next run.
+    reresolve_budget_seconds: float = 180.0
+
     # --- Pillar 2: government hiring-disclosure intelligence (OFLC LCA/PERM + SBIR/STTR) ---
     # SOC prefixes counted as "tech" hiring. 15-12xx = 2018-SOC software/CS; 15-11xx covers the
     # 2010-SOC software-developer codes used in pre-FY2020 disclosure files.

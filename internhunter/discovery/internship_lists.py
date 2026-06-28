@@ -24,8 +24,6 @@ _LISTS = (
     "https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/dev/.github/scripts/listings.json",
     "https://raw.githubusercontent.com/vanshb03/Summer2026-Internships/dev/.github/scripts/listings.json",
     "https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/dev/.github/scripts/listings.json",
-    "https://raw.githubusercontent.com/vanshb03/New-Grad-Positions/dev/.github/scripts/listings.json",
-    "https://raw.githubusercontent.com/cvrve/Summer2026-Internships/dev/.github/scripts/listings.json",
     "https://raw.githubusercontent.com/cvrve/New-Grad-2025/dev/.github/scripts/listings.json",
 )
 
