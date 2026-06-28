@@ -20,12 +20,12 @@ from internhunter.discovery.listing_common import ListingJob, ingest_listings
 
 _SEARCH = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
 _PAGE_SIZE = 25
-_KEYWORDS = "intern"
+_DEFAULT_KEYWORDS = ("intern", "internship", "new grad", "co-op")
 _HARD_PAGE_CAP = 200  # safety ceiling when max_pages=0 (full scrape); empty page stops earlier
 
 
-def _page_url(location: str, start: int) -> str:
-    params = urlencode({"keywords": _KEYWORDS, "location": location, "start": start})
+def _page_url(keyword: str, location: str, start: int) -> str:
+    params = urlencode({"keywords": keyword, "location": location, "start": start})
     return f"{_SEARCH}?{params}"
 
 
@@ -62,26 +62,32 @@ async def fetch_linkedin(ctx: FetchContext, settings: Settings) -> list[ListingJ
     locations = [
         loc.strip() for loc in (settings.linkedin_locations or "").split(",") if loc.strip()
     ] or ["United States"]
+    keywords = [
+        k.strip() for k in (settings.linkedin_keywords or "").split(",") if k.strip()
+    ] or list(_DEFAULT_KEYWORDS)
     max_pages = settings.linkedin_max_pages if settings.linkedin_max_pages > 0 else _HARD_PAGE_CAP
 
     seen: set[str] = set()
     jobs: list[ListingJob] = []
     for location in locations:
-        for page in range(max_pages):
-            url = _page_url(location, page * _PAGE_SIZE)
-            try:
-                markup = await ctx.get_text(url, respect_robots=False)
-            except Exception:
-                ctx.logger.debug("linkedin fetch failed for {} start={}", location, page)
-                break
-            cards = parse_cards(markup)
-            if not cards:
-                break
-            for card in cards:
-                if card.url in seen:
-                    continue
-                seen.add(card.url)
-                jobs.append(card)
+        for keyword in keywords:
+            for page in range(max_pages):
+                url = _page_url(keyword, location, page * _PAGE_SIZE)
+                try:
+                    markup = await ctx.get_text(url, respect_robots=False)
+                except Exception:
+                    ctx.logger.debug(
+                        "linkedin fetch failed kw={} loc={} start={}", keyword, location, page
+                    )
+                    break
+                cards = parse_cards(markup)
+                if not cards:
+                    break
+                for card in cards:
+                    if card.url in seen:
+                        continue
+                    seen.add(card.url)
+                    jobs.append(card)
     return jobs
 
 

@@ -14,6 +14,8 @@ _POLLER_MODULES = [
     "internhunter.sources.tier_c.eightfold",
     "internhunter.sources.tier_c.phenom",
     "internhunter.sources.tier_c.successfactors",
+    "internhunter.sources.tier_c.taleo",
+    "internhunter.sources.tier_c.neogov",
 ]
 
 for _module in _POLLER_MODULES:

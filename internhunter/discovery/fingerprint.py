@@ -144,6 +144,8 @@ _SUBDOMAIN_ATS = (
     (".phenompeople.com", "phenom"),
     (".successfactors.com", "successfactors"),
     (".successfactors.eu", "successfactors"),
+    # --- long-tail ATS (Wave 1) ---
+    (".taleo.net", "taleo"),
 )
 
 _PATH_ATS = (
@@ -154,6 +156,9 @@ _PATH_ATS = (
     # comeet boards: www.comeet.com/jobs/{company-slug}/{uid}; company-slug is the stable token
     ("www.comeet.com", "jobs", "comeet"),
     ("www.comeet.co", "jobs", "comeet"),
+    # NEOGOV / GovernmentJobs: governmentjobs.com/careers/{agency}; agency slug is the token
+    ("www.governmentjobs.com", "careers", "neogov"),
+    ("governmentjobs.com", "careers", "neogov"),
 )
 
 _PATH_FIRST_ATS = (
