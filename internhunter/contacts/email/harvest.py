@@ -124,7 +124,10 @@ async def harvest_commit_patch_email(
             email = _mailbox_from_header(line)
             if email is None:
                 return None
-            if email.rpartition("@")[2].lower().endswith("noreply.github.com"):
+            email_domain = email.rpartition("@")[2].lower()
+            if email_domain == "users.noreply.github.com" or email_domain.endswith(
+                ".noreply.github.com"
+            ):
                 return None
             if domain and not email.endswith("@" + domain.lower()):
                 return None
