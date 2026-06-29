@@ -4,7 +4,7 @@ Self-hosted internship discovery engine. It polls company ATS boards **directly*
 
 No third-party job-board API. No paywall. Your machine, your data, the companies' own endpoints.
 
-**7,537 internships discovered so far.**
+**12,991 internships discovered so far.**
 
 ## Why
 
