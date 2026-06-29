@@ -515,6 +515,32 @@ def create_app() -> FastAPI:
                 )
             return await call_next(request)
 
+    @app.get("/discovery-stats")
+    def discovery_stats() -> dict[str, Any]:
+        from internhunter.registry import registry_stats
+
+        session = get_session()
+        try:
+            board_rows = session.execute(
+                select(Job.ats, func.count()).where(Job.is_internship.is_(True)).group_by(Job.ats)
+            ).all()
+            listing_count = session.scalar(
+                select(func.count()).select_from(Job).where(
+                    Job.is_internship.is_(True), Job.ats == "listing"
+                )
+            ) or 0
+            internship_count = session.scalar(
+                select(func.count()).select_from(Job).where(Job.is_internship.is_(True))
+            ) or 0
+        finally:
+            session.close()
+        return {
+            "registry_seed_boards": registry_stats(),
+            "internships_by_ats": {ats: count for ats, count in board_rows},
+            "listing_internships": listing_count,
+            "total_internships": internship_count,
+        }
+
     @app.get("/", response_class=HTMLResponse)
     def index(
         request: Request,

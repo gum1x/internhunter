@@ -20,12 +20,16 @@ from internhunter.discovery.listing_common import ListingJob, ingest_listings
 
 _SEARCH = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
 _PAGE_SIZE = 25
-_KEYWORDS = "intern"
 _HARD_PAGE_CAP = 200  # safety ceiling when max_pages=0 (full scrape); empty page stops earlier
 
 
-def _page_url(location: str, start: int) -> str:
-    params = urlencode({"keywords": _KEYWORDS, "location": location, "start": start})
+def _keywords(settings: Settings) -> list[str]:
+    raw = (settings.linkedin_keywords or "intern").split(",")
+    return [kw.strip() for kw in raw if kw.strip()] or ["intern"]
+
+
+def _page_url(keyword: str, location: str, start: int) -> str:
+    params = urlencode({"keywords": keyword, "location": location, "start": start})
     return f"{_SEARCH}?{params}"
 
 
@@ -66,22 +70,25 @@ async def fetch_linkedin(ctx: FetchContext, settings: Settings) -> list[ListingJ
 
     seen: set[str] = set()
     jobs: list[ListingJob] = []
-    for location in locations:
-        for page in range(max_pages):
-            url = _page_url(location, page * _PAGE_SIZE)
-            try:
-                markup = await ctx.get_text(url, respect_robots=False)
-            except Exception:
-                ctx.logger.debug("linkedin fetch failed for {} start={}", location, page)
-                break
-            cards = parse_cards(markup)
-            if not cards:
-                break
-            for card in cards:
-                if card.url in seen:
-                    continue
-                seen.add(card.url)
-                jobs.append(card)
+    for keyword in _keywords(settings):
+        for location in locations:
+            for page in range(max_pages):
+                url = _page_url(keyword, location, page * _PAGE_SIZE)
+                try:
+                    markup = await ctx.get_text(url, respect_robots=False)
+                except Exception:
+                    ctx.logger.debug(
+                        "linkedin fetch failed for {} {} start={}", keyword, location, page
+                    )
+                    break
+                cards = parse_cards(markup)
+                if not cards:
+                    break
+                for card in cards:
+                    if card.url in seen:
+                        continue
+                    seen.add(card.url)
+                    jobs.append(card)
     return jobs
 
 

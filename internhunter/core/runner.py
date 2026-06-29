@@ -4,6 +4,7 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from importlib import import_module
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -208,8 +209,12 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
     init_db(resolved.db_path)
     summary = DiscoverySummary()
 
-    async with build_fetch_context(resolved) as ctx:
-        detection_channels = {
+    vc_settings = resolved
+    if resolved.vc_discovery_limit > 0:
+        vc_settings = resolved.model_copy(update={"enable_browser": True})
+
+    async with build_fetch_context(vc_settings) as ctx:
+        detection_channels: dict[str, Any] = {
             "common_crawl": discover_from_common_crawl(ctx),
             "urlscan": discover_from_urlscan(ctx),
             "hackernews": discover_from_hackernews(ctx),
@@ -217,6 +222,21 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
             "similar": discover_similar_companies(ctx, resolved),
             "edgar": discover_from_edgar(ctx, resolved),
         }
+        if resolved.searxng_url:
+            from internhunter.discovery.searxng import discover_from_searxng
+
+            detection_channels["searxng"] = discover_from_searxng(
+                ctx, resolved.searxng_url
+            )
+        from internhunter.discovery.yc import discover_from_yc
+
+        detection_channels["yc"] = discover_from_yc(ctx, limit=resolved.yc_discovery_limit)
+        from internhunter.discovery.vc import discover_from_vc
+
+        detection_channels["vc"] = discover_from_vc(ctx, limit=resolved.vc_discovery_limit)
+        from internhunter.discovery.crt_sh import discover_crtsh_bulk
+
+        detection_channels["crtsh_bulk"] = discover_crtsh_bulk(ctx, resolved)
         results = await asyncio.gather(
             *detection_channels.values(), return_exceptions=True
         )
@@ -249,10 +269,7 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
     summary.boards_new += merged.new_boards
     summary.boards_seen += merged.existing
 
-    # List + API ingestors manage their own context and upsert jobs directly.
-    # Keyless (no-login) ingestors. Indeed is keyless too (it only needs a browser to clear the
-    # bot-wall) so it runs here; handshake needs a login session and stays out of the daily run.
-    for name, coro in (
+    ingest_channels: list[tuple[str, Any]] = [
         ("internship_lists", ingest_internship_lists(resolved)),
         ("job_apis", ingest_job_apis(resolved)),
         ("linkedin", ingest_linkedin(resolved)),
@@ -261,7 +278,27 @@ async def discover_all(settings: Settings | None = None) -> DiscoverySummary:
         ("university", ingest_universities(resolved)),
         ("google_jobs", ingest_google_jobs(resolved)),
         ("indeed", ingest_indeed(resolved)),
-    ):
+    ]
+    if resolved.telegram_channels.strip():
+        from internhunter.discovery.telegram import ingest_telegram
+
+        ingest_channels.append(("telegram", ingest_telegram(resolved)))
+    from internhunter.discovery.feeds import ingest_feeds
+
+    ingest_channels.append(("feeds", ingest_feeds(resolved)))
+    from internhunter.discovery.workatastartup import ingest_workatastartup
+
+    ingest_channels.append(("workatastartup", ingest_workatastartup(resolved)))
+    if resolved.enable_linkedin_auth:
+        from internhunter.discovery.linkedin_auth import ingest_linkedin_auth
+
+        ingest_channels.append(("linkedin_auth", ingest_linkedin_auth(resolved)))
+    if resolved.enable_handshake_auto:
+        from internhunter.discovery.handshake import ingest_handshake
+
+        ingest_channels.append(("handshake", ingest_handshake(resolved)))
+
+    for name, coro in ingest_channels:
         try:
             _entries, jobs, new_boards = await coro
             summary.per_method[name] = new_boards

@@ -1,56 +1,44 @@
 from __future__ import annotations
 
+from importlib import import_module
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from internhunter.config.settings import Settings, get_settings
 from internhunter.core.runner import run_discovery, run_poll, run_score, run_score_llm
+from internhunter.sources.base import SOURCE_REGISTRY
 
 _TIER_INTERVALS_MIN: dict[str, int] = {"A": 30, "B": 120, "C": 360}
 _CONTACTS_INTERVAL_MIN = 720  # enrich freshly-discovered companies twice a day
+_SESSION_REFRESH_INTERVAL_MIN = 360
 
-_TIER_A = {
-    "greenhouse",
-    "lever",
-    "ashby",
-    "workable",
-    "smartrecruiters",
-    "recruitee",
-    "personio",
-}
-_TIER_B = {
-    "breezy",
-    "bamboohr",
-    "jobvite",
-    "jazzhr",
-    "zohorecruit",
-    "dover",
-    "rippling",
-    "gem",
-}
-_TIER_C = {
-    "workday",
-    "icims",
-    "ultipro",
-    "oracle_cloud",
-    "adp",
-    "paylocity",
-}
+
+def _load_sources() -> None:
+    import_module("internhunter.sources.tier_a")
+    import_module("internhunter.sources.tier_b")
+    import_module("internhunter.sources.tier_c")
 
 
 def tier_for_ats(ats: str) -> str:
-    if ats in _TIER_A:
-        return "A"
-    if ats in _TIER_C:
-        return "C"
+    _load_sources()
+    source = SOURCE_REGISTRY.get(ats)
+    if source is not None:
+        return str(source.tier)
     return "B"
 
 
 def _tier_members() -> dict[str, list[str]]:
+    _load_sources()
     members: dict[str, list[str]] = {"A": [], "B": [], "C": []}
-    for ats in sorted(_TIER_A | _TIER_B | _TIER_C):
-        members[tier_for_ats(ats)].append(ats)
+    for ats, source in sorted(SOURCE_REGISTRY.items()):
+        members[str(source.tier)].append(ats)
     return members
+
+
+def all_registered_ats() -> list[str]:
+    _load_sources()
+    return sorted(SOURCE_REGISTRY)
 
 
 def build_scheduler(settings: Settings | None = None) -> BackgroundScheduler:
@@ -81,9 +69,6 @@ def build_scheduler(settings: Settings | None = None) -> BackgroundScheduler:
             kwargs={"settings": settings},
             id="discover-all",
         )
-    # Greenhouse ID-frontier runs far more often than the daily discover-all (its whole value
-    # is catching brand-new postings within ~an hour, and the checkpoint keeps each run cheap),
-    # so it has its OWN toggle, independent of the daily discovery sweep.
     if resolved.enable_greenhouse_frontier:
         from internhunter.discovery.greenhouse_frontier import run_greenhouse_frontier
 
@@ -106,6 +91,15 @@ def build_scheduler(settings: Settings | None = None) -> BackgroundScheduler:
             trigger=IntervalTrigger(minutes=resolved.rating_interval_min),
             kwargs={"settings": settings},
             id="score-llm",
+        )
+    if resolved.enable_session_refresh:
+        from internhunter.sessions.refresh import run_refresh_sessions
+
+        scheduler.add_job(
+            run_refresh_sessions,
+            trigger=IntervalTrigger(minutes=_SESSION_REFRESH_INTERVAL_MIN),
+            kwargs={"settings": settings},
+            id="refresh-sessions",
         )
     return scheduler
 

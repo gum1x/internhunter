@@ -25,6 +25,9 @@ _LISTS = (
     "https://raw.githubusercontent.com/vanshb03/Summer2026-Internships/dev/.github/scripts/listings.json",
     "https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/dev/.github/scripts/listings.json",
     "https://raw.githubusercontent.com/cvrve/New-Grad-2025/dev/.github/scripts/listings.json",
+    "https://raw.githubusercontent.com/pittcsc/Summer2026-Internships/dev/.github/scripts/listings.json",
+    "https://raw.githubusercontent.com/ReaVNalba/new-grad-2025/dev/.github/scripts/listings.json",
+    "https://raw.githubusercontent.com/Ouckah/Summer2026-Internships/dev/.github/scripts/listings.json",
 )
 
 # Alternate key names seen across the various community list repos (all SimplifyJobs-shaped,

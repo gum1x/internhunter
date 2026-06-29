@@ -207,6 +207,7 @@ def _cmd_score_llm(args: argparse.Namespace) -> None:
     from internhunter.llm.score import llm_score_jobs
 
     settings = get_settings()
+    top_k = settings.llm_rating_top_k if args.top_k is None else args.top_k
     init_db()
     session = get_session()
     try:
@@ -214,7 +215,7 @@ def _cmd_score_llm(args: argparse.Namespace) -> None:
             session,
             get_backend(settings),
             settings=settings,
-            top_k=args.top_k,
+            top_k=top_k,
             cache=LlmCache(settings.cache_dir),
         )
     finally:
@@ -464,7 +465,12 @@ def main() -> None:
     subparsers.add_parser("score")
 
     score_llm = subparsers.add_parser("score-llm")
-    score_llm.add_argument("--top-k", type=int, default=20)
+    score_llm.add_argument(
+        "--top-k",
+        type=int,
+        default=None,
+        help="max jobs to rate (0 or omit with INTERNHUNTER_LLM_RATING_TOP_K=0 = all unrated)",
+    )
 
     score_quality = subparsers.add_parser("score-quality")
     score_quality.add_argument("--top-k", type=int, default=None)

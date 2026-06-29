@@ -60,8 +60,15 @@ class Settings(BaseSettings):
     # All ingestors below are keyless (no login). Page caps default to 0 = scrape every page
     # until the source runs dry (bounded by an internal safety ceiling per module).
     # LinkedIn keyless guest jobs API.
-    linkedin_locations: str = "United States"  # comma list, one guest-search pass each
+    linkedin_locations: str = (
+        "United States,Remote,San Francisco Bay Area,New York City,Seattle,"
+        "Austin,Boston,Los Angeles,Chicago,Atlanta,Denver,Washington DC"
+    )
+    linkedin_keywords: str = (
+        'intern,co-op,"summer intern","software engineer intern","engineering intern"'
+    )
     linkedin_max_pages: int = 0  # 25 cards per page; 0 = full scrape
+    enable_linkedin_auth: bool = True  # authenticated search when a session exists / can be created
     # USAJobs federal — keyless via the stealth browser (the public HTML is JS-rendered).
     usajobs_max_pages: int = 0
     # Big-company custom career sites (keyless JSON APIs). Comma list; empty = all known.
@@ -76,9 +83,15 @@ class Settings(BaseSettings):
     enable_indeed: bool = True
     indeed_locations: str = ""  # comma list; "" = nationwide
     indeed_max_pages: int = 0  # 10 cards per page; 0 = full scrape
-    # Handshake — authenticated, opt-in. Saved Playwright storage-state; inert if missing.
+    # Handshake — authenticated. Session auto-created from edu pool when possible.
     handshake_session: Path = Path("handshake_session.json")
     handshake_max_pages: int = 5
+    handshake_edu_pool: str = ""  # comma user:pass@domain pairs for unattended bootstrap
+    enable_handshake_auto: bool = True
+    # Session automation (LinkedIn auth + Handshake bootstrap).
+    sessions_dir: Path = Path("data/sessions")
+    enable_session_refresh: bool = True
+    session_signup_max_attempts: int = 3
 
     # --- anti-slop quality reading (Workstream B) ---
     quality_top_k: int = 40  # LLM judge reads at most this many borderline jobs per run
@@ -132,7 +145,13 @@ class Settings(BaseSettings):
     # clustered on a few hosts (throttled by per_host_concurrency), so the full pass can run
     # ~30min and stall discover-all. Cap the wall-clock; unprocessed rows stay 'listing' and
     # get retried next run.
-    reresolve_budget_seconds: float = 180.0
+    reresolve_budget_seconds: float = 600.0
+    # crt.sh bulk discovery (careers subdomain enumeration).
+    crtsh_max_domains: int = 50
+    crtsh_domain_delay_seconds: float = 1.5
+    # YC / VC company-list discovery limits.
+    yc_discovery_limit: int = 400
+    vc_discovery_limit: int = 600
 
     # --- Pillar 2: government hiring-disclosure intelligence (OFLC LCA/PERM + SBIR/STTR) ---
     # SOC prefixes counted as "tech" hiring. 15-12xx = 2018-SOC software/CS; 15-11xx covers the

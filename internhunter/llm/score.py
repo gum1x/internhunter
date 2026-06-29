@@ -135,14 +135,14 @@ def llm_score_jobs(
     # across Claude usage-limit windows) progress through new jobs instead of re-rating.
     model = f"llm:{resolved.llm_model}:{_SCORE_VERSION}"
     already = select(Score.job_uid).where(Score.model == model)
-    jobs = list(
-        session.scalars(
-            select(Job)
-            .where(Job.is_internship.is_(True), Job.job_uid.not_in(already))
-            .order_by(Job.discovery_score.desc().nulls_last())
-            .limit(top_k)
-        )
+    stmt = (
+        select(Job)
+        .where(Job.is_internship.is_(True), Job.job_uid.not_in(already))
+        .order_by(Job.discovery_score.desc().nulls_last())
     )
+    if top_k > 0:
+        stmt = stmt.limit(top_k)
+    jobs = list(session.scalars(stmt))
     scored = 0
     for job in jobs:
         try:

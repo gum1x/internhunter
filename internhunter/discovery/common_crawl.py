@@ -30,6 +30,11 @@ _ATS_PATTERNS: dict[str, str] = {
     "pinpoint": "*.pinpointhq.com/*",
     "teamtailor": "*.teamtailor.com/*",
     "comeet": "www.comeet.com/jobs/*",
+    "paylocity": "recruiting.paylocity.com/*",
+    "eightfold": "*.eightfold.ai/*",
+    "phenom": "*.phenom.com/*",
+    "gem": "jobs.gem.com/*",
+    "successfactors": "*.successfactors.com/*",
 }
 
 _COLLINFO_URL = "https://index.commoncrawl.org/collinfo.json"
