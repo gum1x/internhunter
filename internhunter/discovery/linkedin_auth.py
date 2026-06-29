@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 
 from loguru import logger
 
-from internhunter.config.settings import Settings, get_settings
+from internhunter.config.settings import Settings
 from internhunter.core.fetch import FetchContext
 from internhunter.discovery.linkedin import parse_cards
 from internhunter.discovery.listing_common import ListingJob, ingest_listings

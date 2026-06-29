@@ -85,6 +85,7 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 "internhunter/contacts/email/verify_github.py" = ["ASYNC109"]
 "internhunter/contacts/email/verify_gravatar.py" = ["ASYNC109"]
 "internhunter/contacts/email/verify_m365.py" = ["ASYNC109"]
+"internhunter/sessions/tempmail.py" = ["ASYNC109"]
 "tests/test_browser.py" = ["ASYNC109"]
 
 [tool.mypy]

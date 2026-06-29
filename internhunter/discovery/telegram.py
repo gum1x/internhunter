@@ -6,9 +6,9 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-from internhunter.config.settings import Settings, get_settings
-from internhunter.discovery.listing_common import ListingJob, ingest_listings
+from internhunter.config.settings import Settings
 from internhunter.core.fetch import FetchContext
+from internhunter.discovery.listing_common import ListingJob, ingest_listings
 
 _URL_RE = re.compile(r"https?://[^\s<>\"']+")
 _INTERNSHIP_RE = re.compile(r"\bintern\b|co-?op|apprentice", re.IGNORECASE)

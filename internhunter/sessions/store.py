@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
-from internhunter.config.settings import Settings, get_settings
+from internhunter.config.settings import Settings
 
 
 def session_path(settings: Settings, name: str) -> Path:
@@ -17,7 +19,7 @@ def load_storage_state(settings: Settings, name: str) -> Path | None:
     return path if path.exists() else None
 
 
-def save_storage_state(settings: Settings, name: str, state: dict) -> Path:
+def save_storage_state(settings: Settings, name: str, state: Mapping[str, Any]) -> Path:
     path = session_path(settings, name)
     path.write_text(json.dumps(state), encoding="utf-8")
     return path

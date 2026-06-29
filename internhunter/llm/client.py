@@ -212,7 +212,9 @@ def complete(
         except _TRANSIENT_ERRORS as exc:
             last_exc = exc
     else:
-        raise last_exc  # type: ignore[misc]
+        if last_exc is not None:
+            raise last_exc
+        raise RuntimeError("LLM generation failed without a transient error")
     if cache is not None:
         cache.set(cache_key(model, prompt, system), result)
     return result

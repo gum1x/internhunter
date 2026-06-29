@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import re
 from datetime import UTC, datetime
-from typing import Any
 from xml.etree import ElementTree
 
 from internhunter.config.settings import Settings, get_settings

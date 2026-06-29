@@ -6,6 +6,7 @@ import random
 import re
 import string
 from dataclasses import dataclass
+from typing import Any
 
 import httpx
 
@@ -21,7 +22,7 @@ class Inbox:
 
 
 async def _api(
-    client: httpx.AsyncClient, method: str, path: str, **kwargs: object
+    client: httpx.AsyncClient, method: str, path: str, **kwargs: Any
 ) -> httpx.Response:
     url = f"{_API}{path}"
     return await client.request(method, url, **kwargs)

@@ -47,7 +47,9 @@ def parse_cards(markup: str) -> list[ListingJob]:
     return jobs
 
 
-async def _render_pages(storage_state: str, max_pages: int, *, headless: bool = True) -> list[ListingJob]:
+async def _render_pages(
+    storage_state: str, max_pages: int, *, headless: bool = True
+) -> list[ListingJob]:
     try:
         from playwright.async_api import async_playwright
     except ImportError:
