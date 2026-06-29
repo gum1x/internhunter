@@ -93,6 +93,30 @@ class Settings(BaseSettings):
     enable_session_refresh: bool = True
     session_signup_max_attempts: int = 3
 
+    # --- Wave 1: more discovery (all keyless) ---
+    # Bulk certificate-transparency enumeration (every company on a subdomain-per-company ATS).
+    enable_crt_bulk: bool = True
+    crt_bulk_max_per_ats: int = 5000
+    # Bluesky keyless AT-Protocol post search ('|'-separated queries; empty = defaults).
+    bluesky_queries: str = ""
+    # Reddit keyless JSON subreddits (comma list; empty = defaults).
+    reddit_subreddits: str = "internships,csMajors,cscareerquestions"
+    # EURES (EU public jobs) — keyless POST search; pages per keyword pass.
+    eures_max_pages: int = 5
+    # Bundesagentur für Arbeit (Germany) — keyless (public X-API-Key constant).
+    arbeitsagentur_max_pages: int = 5
+    # Web Data Commons schema.org JobPosting dataset (gzip N-Quads). Empty = OFF (heavy/monthly);
+    # set to the verified dataset URL from webdatacommons.org/structureddata to enable.
+    web_data_commons_url: str = ""
+    # DNS CNAME -> ATS board resolution.
+    board_resolve_limit: int = 500
+    # git-commit contact mining: bare-clone this many top repos per company.
+    git_commit_max_repos: int = 5
+
+    # --- Wave 1: in-process anti-block (no proxies, $0) ---
+    # On a 403 (TLS-level bot wall), retry GETs once with a browser fingerprint via curl_cffi.
+    enable_curl_cffi: bool = True
+
     # --- anti-slop quality reading (Workstream B) ---
     quality_top_k: int = 40  # LLM judge reads at most this many borderline jobs per run
     quality_min_chars: int = 300  # below this a description is "content-free"

@@ -1,15 +1,29 @@
 from __future__ import annotations
 
+import random
 from typing import Any, Protocol, runtime_checkable
 
 from internhunter.config.settings import Settings, get_settings
 
-_USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/124.0.0.0 Safari/537.36"
+# Rotate over a few recent-Chrome UAs / common viewports / plausible timezones so repeated
+# renders don't present an identical, easily-fingerprinted browser.
+_USER_AGENTS = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
 )
-_VIEWPORT = {"width": 1280, "height": 800}
+_VIEWPORTS = (
+    {"width": 1280, "height": 800},
+    {"width": 1440, "height": 900},
+    {"width": 1536, "height": 864},
+    {"width": 1920, "height": 1080},
+)
+_TIMEZONES = ("America/New_York", "America/Los_Angeles", "Europe/London", "Europe/Berlin")
+_USER_AGENT = _USER_AGENTS[0]
+_VIEWPORT = _VIEWPORTS[0]
 _LAUNCH_ARGS = [
     "--disable-blink-features=AutomationControlled",
     "--disable-dev-shm-usage",
@@ -55,9 +69,10 @@ class PlaywrightBrowser:
     async def _new_context(self) -> Any:
         browser = await self._ensure()
         context = await browser.new_context(
-            user_agent=_USER_AGENT,
-            viewport=_VIEWPORT,
+            user_agent=random.choice(_USER_AGENTS),
+            viewport=random.choice(_VIEWPORTS),
             locale="en-US",
+            timezone_id=random.choice(_TIMEZONES),
         )
         await context.add_init_script(_INIT_SCRIPT)
         return context

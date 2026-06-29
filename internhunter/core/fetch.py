@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import ipaddress
 import json
+import random
 import socket
 import time
 import urllib.robotparser
@@ -126,6 +127,25 @@ def _is_retryable(exc: BaseException) -> bool:
 
 def _host_of(url: str) -> str:
     return urlsplit(url).netloc.lower()
+
+
+def _curl_cffi_get(
+    url: str, params: dict[str, Any] | None, headers: dict[str, str]
+) -> httpx.Response:
+    """Re-fetch a URL with a real browser TLS/JA3 fingerprint via curl_cffi (keyless), to
+    clear TLS-level bot walls that block httpx. Raises ImportError if curl_cffi is absent so
+    the caller can fall back to the original error."""
+    from curl_cffi import requests as cffi
+
+    resp = cffi.get(
+        url, params=params, headers=headers, impersonate="chrome", timeout=30.0
+    )
+    return httpx.Response(
+        status_code=resp.status_code,
+        content=resp.content,
+        headers=dict(resp.headers),
+        request=httpx.Request("GET", url),
+    )
 
 
 def _cache_key(url: str, params: dict[str, Any] | None) -> str:
@@ -282,6 +302,8 @@ class FetchContext:
                     request_headers.setdefault("If-Modified-Since", cached.last_modified)
 
         delay = await self.robots.crawl_delay(url) if respect_robots else None
+        if delay:  # ±20% jitter so the request cadence isn't a detectable fixed beat
+            delay *= random.uniform(0.8, 1.2)
         host_sem = await self.host_limiter.semaphore(host)
 
         @retry(
@@ -305,7 +327,23 @@ class FetchContext:
                 response.raise_for_status()
             return response
 
-        response = await _send()
+        try:
+            response = await _send()
+        except httpx.HTTPStatusError as exc:
+            # TLS-level bot wall (typically a 403): retry once with a browser fingerprint.
+            resp = exc.response
+            if (
+                self.settings.enable_curl_cffi and method == "GET"
+                and resp is not None and resp.status_code == 403
+            ):
+                try:
+                    response = await asyncio.to_thread(
+                        _curl_cffi_get, url, params, request_headers
+                    )
+                except Exception:
+                    raise exc from None
+            else:
+                raise
 
         max_bytes = self.settings.max_response_bytes
         if max_bytes and len(response.content) > max_bytes:

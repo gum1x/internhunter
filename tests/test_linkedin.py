@@ -41,11 +41,15 @@ def test_parse_cards_extracts_fields() -> None:
 
 async def test_fetch_linkedin_paginates_and_stops(fake_fetch_context: Any) -> None:
     ctx = fake_fetch_context
-    ctx.responses[_page_url("United States", 0)] = httpx.Response(200, text=_FRAGMENT)
+    ctx.responses[_page_url("intern", "United States", 0)] = httpx.Response(200, text=_FRAGMENT)
     # page 1 empty -> loop stops
-    ctx.responses[_page_url("United States", 25)] = httpx.Response(200, text="")
+    ctx.responses[_page_url("intern", "United States", 25)] = httpx.Response(200, text="")
     settings = ctx.settings.model_copy(
-        update={"linkedin_locations": "United States", "linkedin_max_pages": 3}
+        update={
+            "linkedin_locations": "United States",
+            "linkedin_keywords": "intern",
+            "linkedin_max_pages": 3,
+        }
     )
     jobs = await fetch_linkedin(ctx, settings)
     assert {j.url for j in jobs} == {
