@@ -16,6 +16,23 @@ services:
       - searxng
     restart: unless-stopped
 
+  scheduler:
+    build: .
+    command: internhunter schedule
+    env_file:
+      - .env
+    environment:
+      INTERNHUNTER_DB_PATH: /data/internhunter.db
+      INTERNHUNTER_CACHE_DIR: /data/.cache
+      INTERNHUNTER_SEARXNG_URL: http://searxng:8080
+      INTERNHUNTER_ENABLE_BROWSER: "true"
+    volumes:
+      - internhunter_data:/data
+    depends_on:
+      - searxng
+      - app
+    restart: unless-stopped
+
   searxng:
     image: searxng/searxng:latest
     ports:

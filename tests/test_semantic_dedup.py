@@ -97,3 +97,41 @@ def test_three_member_identical_group() -> None:
     assert len(canonicals) == 1
     assert merged == 2
     assert canonicals[0].times_seen_elsewhere == 2
+
+
+class ChainEncoder:
+    """Maps three known job texts onto a chain: A~B and B~C but A is far from C.
+    Vectors are chosen so that cos(A,B)=cos(B,C)>=0.9 and cos(A,C)<0.9."""
+
+    def encode(self, texts: list[str]) -> NDArray[np.float32]:
+        import math
+
+        # Angles 0deg, ~22deg, ~44deg: adjacent pairs ~0.927 (>=0.9), A..C ~0.719 (<0.9).
+        angle = {"A": 0.0, "B": math.radians(22.0), "C": math.radians(44.0)}
+        rows: list[NDArray[np.float32]] = []
+        for t in texts:
+            key = next((k for k in angle if t.startswith(k)), "A")
+            rows.append(
+                np.array([math.cos(angle[key]), math.sin(angle[key])], dtype=np.float32)
+            )
+        return np.asarray(rows, dtype=np.float32)
+
+
+def test_chain_clustering_is_order_independent() -> None:
+    # A~B~C with A not similar to C. Connected-components must give ONE deterministic
+    # group regardless of input order (the old greedy single-link was order-dependent).
+    def make(tag: str, url: str) -> NormalizedJob:
+        return _job(ats="greenhouse", url=url, title=tag, description_text=tag)
+
+    a = make("A", "g1")
+    b = make("B", "g2")
+    c = make("C", "g3")
+
+    def signature(jobs: list[NormalizedJob]) -> list[frozenset[str]]:
+        groups = semantic_groups(jobs, ChainEncoder(), threshold=0.9)
+        return sorted((frozenset(j.canonical_url for j in g) for g in groups), key=sorted)
+
+    assert signature([a, b, c]) == signature([c, b, a])
+    assert signature([a, b, c]) == signature([b, a, c])
+    # All three land in one connected component (A-B edge and B-C edge).
+    assert signature([a, b, c]) == [frozenset({"g1", "g2", "g3"})]

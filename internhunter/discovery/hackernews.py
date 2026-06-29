@@ -9,6 +9,10 @@ from internhunter.discovery.fingerprint import Detection, detect_from_html
 _SEARCH_BASE = "https://hn.algolia.com/api/v1/search_by_date"
 _ITEM_BASE = "https://hn.algolia.com/api/v1/items"
 
+# Global ceiling on comments scanned across all threads, so a large `months` knob
+# cannot drive unbounded memory growth regardless of per-thread `max_comments`.
+_MAX_TOTAL_COMMENTS = 10000
+
 
 def _search_url(hits: int = 1) -> str:
     query = urlencode(
@@ -74,12 +78,13 @@ async def _scan_thread(
     seen: set[tuple[str, str]],
     detections: list[Detection],
     max_comments: int,
-) -> None:
+) -> int:
+    """Scan one thread, returning the number of comment texts collected."""
     try:
         item = await ctx.get_json(_item_url(thread_id), respect_robots=False)
     except Exception:
         ctx.logger.debug("failed to fetch hn item {}", thread_id)
-        return
+        return 0
 
     texts: list[str] = []
     children = item.get("children") if isinstance(item, dict) else None
@@ -96,6 +101,7 @@ async def _scan_thread(
                 continue
             seen.add(key)
             detections.append(detection)
+    return len(texts)
 
 
 async def discover_from_hackernews(
@@ -114,6 +120,10 @@ async def discover_from_hackernews(
 
     seen: set[tuple[str, str]] = set()
     detections: list[Detection] = []
+    total = 0
     for tid in thread_ids:
-        await _scan_thread(ctx, tid, seen, detections, max_comments)
+        budget = min(max_comments, _MAX_TOTAL_COMMENTS - total)
+        if budget <= 0:
+            break
+        total += await _scan_thread(ctx, tid, seen, detections, budget)
     return detections

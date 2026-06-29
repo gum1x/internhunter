@@ -70,14 +70,16 @@ class SmartRecruitersSource(Source):
             page = await ctx.get_json(
                 base, params={"limit": _PAGE_LIMIT, "offset": offset}
             )
+            page = page if isinstance(page, dict) else {}
             content = page.get("content") or []
             for posting in content:
                 detail = await self._fetch_detail(ref, ctx, posting.get("id"))
                 yield RawPosting(raw=posting, detail=detail)
-            total_found = int(page.get("totalFound") or 0)
-            offset += _PAGE_LIMIT
-            if offset >= total_found or not content:
+            # Continue while the last page came back full; `totalFound` is often
+            # missing/null and trusting it drops every page after the first.
+            if len(content) < _PAGE_LIMIT:
                 break
+            offset += _PAGE_LIMIT
 
     async def _fetch_detail(
         self, ref: BoardRef, ctx: FetchContext, posting_id: str | None

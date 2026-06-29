@@ -30,10 +30,21 @@ def test_does_not_merge_conflicting_logins() -> None:
     assert len(merge_people([a, b])) == 2
 
 
-def test_name_only_records_merge() -> None:
+def test_name_only_records_do_not_merge() -> None:
+    # Two records that each carry ONLY a name could be two different people: no shared or
+    # corroborating identifier means we must NOT fuse them.
     a = DiscoveredPerson(full_name="Jane Doe", title="Recruiter")
     b = DiscoveredPerson(full_name="Jane Doe")
-    assert len(merge_people([a, b])) == 1
+    assert len(merge_people([a, b])) == 2
+
+
+def test_same_name_merges_when_one_side_has_identifier() -> None:
+    # A bare-name record folds into a same-named record that carries a strong id.
+    a = DiscoveredPerson(full_name="Jane Doe", github_login="janedoe")
+    b = DiscoveredPerson(full_name="Jane Doe", title="Recruiter")
+    merged = merge_people([a, b])
+    assert len(merged) == 1
+    assert merged[0].github_login == "janedoe"
 
 
 def test_distinct_people_stay_separate() -> None:

@@ -62,3 +62,23 @@ def test_embed_cache_avoids_recompute(tmp_path: Path) -> None:
     second = embed_texts(texts, enc, cache)
     assert enc.calls == calls_after_first
     assert np.allclose(first, second)
+
+
+def test_corrupt_cache_file_is_treated_as_miss(tmp_path: Path) -> None:
+    enc = FakeEncoder(dim=16)
+    cache = EmbeddingCache(tmp_path, "fake")
+    # Overwrite the cache file for "one" with non-.npy garbage.
+    path = cache._path("one")
+    path.write_bytes(b"not a valid npy file")
+    out = embed_texts(["one"], enc, cache)
+    assert out.shape == (1, 16)  # re-encoded, no crash
+
+
+def test_wrong_dim_cache_file_is_treated_as_miss(tmp_path: Path) -> None:
+    enc = FakeEncoder(dim=16)
+    cache = EmbeddingCache(tmp_path, "fake")
+    # Seed a good 16-dim vector for "one", then poison "two" with a wrong-dim (8) vector.
+    embed_texts(["one"], enc, cache)
+    cache.set("two", np.ones(8, dtype=np.float32))
+    out = embed_texts(["one", "two"], enc, cache)
+    assert out.shape == (2, 16)  # mismatched "two" re-encoded to 16-dim, vstack works

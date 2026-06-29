@@ -66,3 +66,28 @@ async def test_paylocity_poll_non_dict_response_yields_empty(fake_fetch_context:
     jobs = await source.poll(ref, fake_fetch_context)
 
     assert jobs == []
+
+
+@pytest.mark.asyncio
+async def test_paylocity_poll_handles_brace_in_description(fake_fetch_context: Any) -> None:
+    # A description containing `};` must not truncate the balanced JSON.
+    source = PaylocitySource()
+    ref = BoardRef(ats="paylocity", token="GUID123")
+    html = (
+        "<html><body><script>"
+        'window.pageData = {"Jobs": [{"JobId": "JB-9001", '
+        '"JobTitle": "Software Intern", '
+        '"Description": "Write code like func() {}; then deploy.", '
+        '"LocationName": "Remote", "IsRemote": true}, '
+        '{"JobId": "JB-9002", "JobTitle": "Engineer", '
+        '"Description": "Build things.", "LocationName": "Berlin"}]};'
+        "</script></body></html>"
+    )
+    fake_fetch_context.responses[source.board_url(ref)] = httpx.Response(200, text=html)
+
+    jobs = await source.poll(ref, fake_fetch_context)
+
+    assert len(jobs) == 2
+    assert jobs[0].source_job_id == "JB-9001"
+    assert "{};" in jobs[0].description_text
+    assert jobs[1].source_job_id == "JB-9002"

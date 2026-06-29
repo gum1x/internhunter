@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
+# A posted_at in the future is impossible/suspicious (a low-quality source could
+# post-date a listing to rank itself to the top). Treat it as neutral, not fresh.
+_FUTURE_NEUTRAL = 0.3
+
 
 def freshness_score(
     posted_at: datetime | None, now: datetime, half_life_days: float = 14.0
@@ -9,7 +13,10 @@ def freshness_score(
     if posted_at is None:
         return 0.3
     age_days = (now - posted_at).total_seconds() / 86400.0
-    if age_days <= 0.0:
+    if age_days < 0.0:
+        # Future post date: don't reward it with max freshness.
+        return _FUTURE_NEUTRAL
+    if age_days == 0.0:
         return 1.0
     score = float(0.5 ** (age_days / half_life_days))
     return max(0.0, min(1.0, score))

@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     per_host_concurrency: int = 4
     default_user_agent: str = "InternHunter/0.1 (+https://github.com/internhunter)"
     request_timeout: float = 30.0
+    # Hard cap on a single response body. Bounds memory, the on-disk cache, and the
+    # downstream parsers/regexes against hostile oversized responses (~25 MB default).
+    max_response_bytes: int = 25_000_000
     cache_dir: Path = Path(".cache")
     retry_max_attempts: int = 4
     embed_model: str = "all-MiniLM-L6-v2"
@@ -50,20 +53,29 @@ class Settings(BaseSettings):
     enable_scheduled_llm_rating: bool = True  # LLM deep-read (uses Claude quota)
     rating_interval_min: int = 360  # every 6h (aligns with Claude usage-limit windows)
     llm_rating_top_k: int = 300  # jobs LLM-rated per scheduled batch
-    usajobs_api_key: str = ""  # unused — the USAJobs ingestor is keyless (scrapes public HTML)
+    usajobs_api_key: str = ""  # unused (keyless ethos) — USAJobs goes through the browser
     findwork_api_key: str = ""
 
     # --- external listing ingestors (aggregators / custom careers sites) ---
     # All ingestors below are keyless (no login). Page caps default to 0 = scrape every page
     # until the source runs dry (bounded by an internal safety ceiling per module).
     # LinkedIn keyless guest jobs API.
-    linkedin_locations: str = "United States"  # comma list, one guest-search pass each
-    linkedin_keywords: str = "intern,internship,new grad,co-op"  # guest-API keyword variants
+    linkedin_locations: str = (
+        "United States,Remote,San Francisco Bay Area,New York City,Seattle,"
+        "Austin,Boston,Los Angeles,Chicago,Atlanta,Denver,Washington DC"
+    )
+    linkedin_keywords: str = (
+        'intern,co-op,"summer intern","software engineer intern","engineering intern"'
+    )
     linkedin_max_pages: int = 0  # 25 cards per page; 0 = full scrape
-    # USAJobs federal — keyless public-HTML scrape (no api key).
-    usajobs_max_pages: int = 0  # 0 = full scrape
+    enable_linkedin_auth: bool = True  # authenticated search when a session exists / can be created
+    # USAJobs federal — keyless via the stealth browser (the public HTML is JS-rendered).
+    usajobs_max_pages: int = 0
     # Big-company custom career sites (keyless JSON APIs). Comma list; empty = all known.
-    bigco_companies: str = "google,amazon,microsoft,apple,netflix"
+    # Default is the two whose public JSON APIs actually work keyless; google (API
+    # deprecated), microsoft (moved + broken TLS cert), and apple (Akamai bot-wall) are
+    # opt-in only — add them here if/when their endpoints become reachable again.
+    bigco_companies: str = "amazon,netflix"
     # University career portals: public-page JSON-LD harvest seed list.
     university_list_path: Path | None = None  # None -> registry/universities.jsonl
     # Indeed — keyless stealth-browser scrape (no login; needs a browser only to clear the
@@ -71,9 +83,15 @@ class Settings(BaseSettings):
     enable_indeed: bool = True
     indeed_locations: str = ""  # comma list; "" = nationwide
     indeed_max_pages: int = 0  # 10 cards per page; 0 = full scrape
-    # Handshake — authenticated, opt-in. Saved Playwright storage-state; inert if missing.
+    # Handshake — authenticated. Session auto-created from edu pool when possible.
     handshake_session: Path = Path("handshake_session.json")
     handshake_max_pages: int = 5
+    handshake_edu_pool: str = ""  # comma user:pass@domain pairs for unattended bootstrap
+    enable_handshake_auto: bool = True
+    # Session automation (LinkedIn auth + Handshake bootstrap).
+    sessions_dir: Path = Path("data/sessions")
+    enable_session_refresh: bool = True
+    session_signup_max_attempts: int = 3
 
     # --- Wave 1: more discovery (all keyless) ---
     # Bulk certificate-transparency enumeration (every company on a subdomain-per-company ATS).
@@ -146,6 +164,18 @@ class Settings(BaseSettings):
     greenhouse_frontier_max_window: int = 20000  # hard cap so a bad --limit can't run forever
     greenhouse_frontier_interval_min: int = 60  # scheduled cadence (freshness lever)
     enable_greenhouse_frontier: bool = True  # independent of the daily discover-all toggle
+
+    # reresolve re-fetches up to 2000 ats='listing' URLs; many are slow JS career portals
+    # clustered on a few hosts (throttled by per_host_concurrency), so the full pass can run
+    # ~30min and stall discover-all. Cap the wall-clock; unprocessed rows stay 'listing' and
+    # get retried next run.
+    reresolve_budget_seconds: float = 600.0
+    # crt.sh bulk discovery (careers subdomain enumeration).
+    crtsh_max_domains: int = 50
+    crtsh_domain_delay_seconds: float = 1.5
+    # YC / VC company-list discovery limits.
+    yc_discovery_limit: int = 400
+    vc_discovery_limit: int = 600
 
     # --- Pillar 2: government hiring-disclosure intelligence (OFLC LCA/PERM + SBIR/STTR) ---
     # SOC prefixes counted as "tech" hiring. 15-12xx = 2018-SOC software/CS; 15-11xx covers the

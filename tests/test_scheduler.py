@@ -3,6 +3,7 @@ from __future__ import annotations
 from internhunter.config.settings import Settings
 from internhunter.scheduler import (
     _TIER_INTERVALS_MIN,
+    all_registered_ats,
     build_scheduler,
     tier_for_ats,
 )
@@ -27,6 +28,7 @@ def test_build_scheduler_jobs() -> None:
         "greenhouse-frontier",
         "score",
         "score-llm",
+        "refresh-sessions",
     }
     for job in jobs:
         if not job.id.startswith("poll-tier-"):
@@ -52,3 +54,19 @@ def test_greenhouse_frontier_has_its_own_toggle() -> None:
 def test_build_scheduler_not_running() -> None:
     scheduler = build_scheduler()
     assert scheduler.running is False
+
+
+def test_all_registered_ats_are_scheduled() -> None:
+    scheduler = build_scheduler()
+    scheduled: set[str] = set()
+    for job in scheduler.get_jobs():
+        if not job.id.startswith("poll-tier-"):
+            continue
+        scheduled.update(job.kwargs.get("ats", []))
+    assert scheduled == set(all_registered_ats())
+    assert "pinpoint" in scheduled
+    assert "comeet" in scheduled
+    assert "teamtailor" in scheduled
+    assert "eightfold" in scheduled
+    assert "phenom" in scheduled
+    assert "successfactors" in scheduled

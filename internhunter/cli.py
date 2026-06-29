@@ -32,10 +32,21 @@ def _cmd_poll(args: argparse.Namespace) -> None:
             print(f"  ! {result.ref.ats}/{result.ref.token}: {result.error}")
 
 
+_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+
+
 def _cmd_serve(args: argparse.Namespace) -> None:
     import uvicorn
 
+    from internhunter.config.settings import get_settings
     from internhunter.web.app import create_app
+
+    settings = get_settings()
+    if args.host not in _LOOPBACK_HOSTS and not (settings.auth_user and settings.auth_pass):
+        raise SystemExit(
+            f"refusing to bind non-loopback host {args.host!r} without auth: set "
+            "INTERNHUNTER_AUTH_USER and INTERNHUNTER_AUTH_PASS, or bind 127.0.0.1"
+        )
 
     uvicorn.run(create_app(), host=args.host, port=args.port)
 
@@ -210,6 +221,7 @@ def _cmd_score_llm(args: argparse.Namespace) -> None:
     from internhunter.llm.score import llm_score_jobs
 
     settings = get_settings()
+    top_k = settings.llm_rating_top_k if args.top_k is None else args.top_k
     init_db()
     session = get_session()
     try:
@@ -217,7 +229,7 @@ def _cmd_score_llm(args: argparse.Namespace) -> None:
             session,
             get_backend(settings),
             settings=settings,
-            top_k=args.top_k,
+            top_k=top_k,
             cache=LlmCache(settings.cache_dir),
         )
     finally:
@@ -476,7 +488,12 @@ def main() -> None:
     subparsers.add_parser("score")
 
     score_llm = subparsers.add_parser("score-llm")
-    score_llm.add_argument("--top-k", type=int, default=20)
+    score_llm.add_argument(
+        "--top-k",
+        type=int,
+        default=None,
+        help="max jobs to rate (0 or omit with INTERNHUNTER_LLM_RATING_TOP_K=0 = all unrated)",
+    )
 
     score_quality = subparsers.add_parser("score-quality")
     score_quality.add_argument("--top-k", type=int, default=None)
@@ -498,6 +515,8 @@ def main() -> None:
     schedule = subparsers.add_parser("schedule")
     schedule.add_argument("--run-now", action="store_true")
     schedule.add_argument("--ats", default=None)
+
+    subparsers.add_parser("mcp", help="run the MCP server (stdio) for Claude/MCP clients")
 
     args = parser.parse_args()
 
@@ -545,5 +564,10 @@ def main() -> None:
         return
     if args.command == "schedule":
         _cmd_schedule(args)
+        return
+    if args.command == "mcp":
+        from internhunter.mcp_server import main as mcp_main
+
+        mcp_main()
         return
     parser.print_help()

@@ -22,7 +22,7 @@ from internhunter.core.normalize import (
 from internhunter.sources.base import BoardRef, RawPosting, Source, Tier, register_source
 
 _BASE_URL = "https://www.comeet.com"
-_POSITIONS_RE = re.compile(r"COMPANY_POSITIONS_DATA\s*=\s*(\[.*?\]);", re.DOTALL)
+_POSITIONS_RE = re.compile(r"COMPANY_POSITIONS_DATA\s*=\s*(\[)")
 
 
 def _board_path(token: str) -> str:
@@ -59,7 +59,7 @@ class ComeetSource(Source):
             ctx.logger.debug("comeet positions data not found for {}", ref.token)
             return
         try:
-            positions = json.loads(match.group(1))
+            positions, _ = json.JSONDecoder().raw_decode(html, match.start(1))
         except json.JSONDecodeError:
             ctx.logger.debug("comeet positions parse failed for {}", ref.token)
             return
@@ -82,9 +82,20 @@ class ComeetSource(Source):
             _build_location(location_data) if isinstance(location_data, dict) else None
         )
         location = normalize_location(location_raw)
-        is_remote = location.is_remote or bool(
-            location_data.get("is_remote") if isinstance(location_data, dict) else False
+        workplace_type = str(position.get("workplace_type") or "").lower()
+        is_remote = (
+            location.is_remote
+            or workplace_type in {"remote", "fully_remote"}
+            or bool(
+                location_data.get("is_remote")
+                if isinstance(location_data, dict)
+                else False
+            )
         )
+        remote_scope = location.remote_scope
+        if workplace_type == "hybrid":
+            is_remote = True
+            remote_scope = remote_scope or "hybrid"
 
         department = position.get("department")
         employment_type = position.get("employment_type")
@@ -116,7 +127,7 @@ class ComeetSource(Source):
             region=location.region,
             city=location.city,
             is_remote=is_remote,
-            remote_scope=location.remote_scope,
+            remote_scope=remote_scope,
             description_text=description_text,
             posted_at=parse_datetime(position.get("time_updated")),
             deadline_at=extract_deadline(description_text),

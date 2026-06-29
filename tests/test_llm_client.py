@@ -10,6 +10,7 @@ from internhunter.llm.client import (
     ApiBackend,
     CliBackend,
     LlmCache,
+    LocalBackend,
     cache_key,
     complete,
     extract_json,
@@ -37,6 +38,20 @@ def test_extract_json_from_noisy_text() -> None:
 def test_extract_json_raises_without_object() -> None:
     with pytest.raises(ValueError):
         extract_json("no json here")
+
+
+def test_extract_json_skips_prose_braces_before_object() -> None:
+    # Prose containing its own braces before the real JSON must not break parsing
+    # (the old greedy first-{ to last-} match spanned from the prose's "{}").
+    text = 'I considered the empty set {} and edge cases, then:\n{"fit": 73, "ok": true}'
+    data = extract_json(text)
+    assert data["fit"] == 73
+    assert data["ok"] is True
+
+
+def test_extract_json_prefers_last_object() -> None:
+    text = '{"draft": 1} ... final answer: {"fit": 9}'
+    assert extract_json(text)["fit"] == 9
 
 
 def _run_cli(monkeypatch: pytest.MonkeyPatch, returncode: int, stdout: str) -> CliBackend:
@@ -96,6 +111,58 @@ def test_get_backend_cli_when_forced(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
     backend = get_backend(Settings(llm_backend="cli"))
     assert isinstance(backend, CliBackend)
+
+
+def test_local_backend_no_choices_raises_runtime_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    import httpx
+
+    class _Resp:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, Any]:
+            return {"error": {"message": "model not loaded"}}
+
+    def fake_post(*args: Any, **kwargs: Any) -> _Resp:
+        return _Resp()
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    backend = LocalBackend("http://localhost:8080", "local-model")
+    with pytest.raises(RuntimeError, match="no choices"):
+        backend.generate("hi")
+
+
+def test_complete_retries_transient_failure() -> None:
+    class _Flaky:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def generate(self, prompt: str, system: str | None = None, max_tokens: int = 1024) -> str:
+            self.calls += 1
+            if self.calls == 1:
+                raise TimeoutError("transient network blip")
+            return '{"ok": 1}'
+
+    backend = _Flaky()
+    assert complete("p", backend, model="m") == '{"ok": 1}'
+    assert backend.calls == 2
+
+
+def test_complete_does_not_retry_content_errors() -> None:
+    # A deterministic content error (e.g. non-json stdout) must fail fast, not retry,
+    # so the per-job isolation in score/quality stays intact.
+    class _Bad:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def generate(self, prompt: str, system: str | None = None, max_tokens: int = 1024) -> str:
+            self.calls += 1
+            raise RuntimeError("claude cli returned non-json stdout")
+
+    backend = _Bad()
+    with pytest.raises(RuntimeError):
+        complete("p", backend, model="m")
+    assert backend.calls == 1
 
 
 def test_api_backend_requires_anthropic(monkeypatch: pytest.MonkeyPatch) -> None:

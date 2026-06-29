@@ -42,8 +42,8 @@ recover the real ATS board behind each apply link where it exists (`reresolve` u
 | Source | Access | Notes |
 |---|---|---|
 | **LinkedIn** | keyless guest jobs API | rate-limited; personal single-user use |
-| **USAJobs** (federal) | **keyless** (public HTML, no API key) | Pathways / student-trainee internships |
-| **Big-company sites** | keyless JSON careers APIs | Google, Amazon, Microsoft, Apple, Netflix (extensible) |
+| **USAJobs** (federal) | **keyless** (stealth browser; page is JS-rendered) | Pathways / student-trainee internships; no API key |
+| **Big-company sites** | keyless JSON careers APIs | Amazon, Netflix work keyless; Google (API retired), Microsoft (moved), Apple (bot-walled) are opt-in |
 | **University portals** | public-page JSON-LD harvest | recovers employer/ATS boards schools expose publicly |
 | **Google Jobs** | approximated via JSON-LD + SearXNG | no direct SERP scraping |
 | **Indeed** | keyless (stealth browser, **no login**) | on by default; full scrape, best-effort/bot-walled |
@@ -103,7 +103,7 @@ internhunter serve                                     # FastAPI + HTMX dashboar
 
 ### What grows coverage & filters slop
 
-- **Scheduled discovery** (`discover-all`, daily) keeps the board registry full automatically — the biggest coverage lever, since the engine already polls 24 ATS platforms but the registry was only grown by manual runs. Channels: Common Crawl (paginated), urlscan, HN, broadened SearXNG dorks (all ATS × niche keywords), expanded GitHub list ingestion, **crt.sh** custom-domain careers enumeration, and **JSON-LD `JobPosting`** harvesting. The daily run also **reresolves** unrecognized `listing` jobs back into real boards, and an **opt-in GitHub code-search** channel (needs `GITHUB_TOKEN`, off by default) harvests ATS tokens at scale. `discover-all` additionally runs the keyless **external-listing ingestors** (LinkedIn guest API, keyless USAJobs, big-company careers APIs, public university-page harvest, Google-Jobs-via-JSON-LD, a keyless Indeed browser scrape, plus **Bluesky / Reddit / EURES / Bundesagentur (DE) / Idealist**) so roles posted only on the aggregators get pulled too — each fails soft and feeds any recovered ATS board into the registry. None of these require a login. Two novel **ground-truth** discovery channels also run: **`crt_bulk`** (one certificate-transparency query per subdomain-ATS surfaces *every* company on it) and **`board_resolve`** (DNS CNAME of `careers.<company>` → its ATS); a heavier **`web_data_commons`** bulk schema.org JobPosting harvest is available off by default. Only **Handshake** stays out of the automatic run: its student postings are gated behind a university SSO login, so it's inert unless you supply a saved session. Bot-walled sources fall back to a browser **TLS fingerprint** (`curl_cffi`, install `".[stealth]"`) — keyless, no proxies; the Indeed full-scrape can still hit IP rate limits at scale (set `HTTP_PROXY` or lower `INDEED_MAX_PAGES`).
+- **Scheduled discovery** (`discover-all`, daily) keeps the board registry full automatically — the biggest coverage lever, since the engine already polls 24 ATS platforms but the registry was only grown by manual runs. Channels: Common Crawl (paginated), urlscan, HN, broadened SearXNG dorks (all ATS × niche keywords), expanded GitHub list ingestion, **crt.sh** custom-domain careers enumeration, and **JSON-LD `JobPosting`** harvesting. The daily run also **reresolves** unrecognized `listing` jobs back into real boards, and an **opt-in GitHub code-search** channel (needs `GITHUB_TOKEN`, off by default) harvests ATS tokens at scale. `discover-all` additionally runs the keyless **external-listing ingestors** (LinkedIn guest API, keyless USAJobs, big-company careers APIs, public university-page harvest, Google-Jobs-via-JSON-LD, a keyless Indeed browser scrape, plus **Bluesky / Reddit / EURES / Bundesagentur (DE) / Idealist**) so roles posted only on the aggregators get pulled too — each fails soft and feeds any recovered ATS board into the registry. None of these require a login. Two novel **ground-truth** discovery channels also run: **`crt_bulk`** (one certificate-transparency query per subdomain-ATS surfaces *every* company on it) and **`board_resolve`** (DNS CNAME of `careers.<company>` → its ATS); a heavier **`web_data_commons`** bulk schema.org JobPosting harvest is available off by default. Authenticated channels (LinkedIn-auth, Handshake auto-session) run only when their feature flags and a usable session are present. Bot-walled sources fall back to a browser **TLS fingerprint** (`curl_cffi`, install `".[stealth]"`) — keyless, no proxies; the Indeed full-scrape can still hit IP rate limits at scale (set `HTTP_PROXY` or lower `INDEED_MAX_PAGES`).
 - **Anti-slop quality reading** scores every job with free heuristics at ingest (ghost/agency/MLM/content-free/evergreen flags + a per-job `sightings` open-duration log), then an LLM reads only the *borderline* jobs (`score-quality`) and assigns a legitimacy verdict. The dashboard hides confirmed slop by default (toggle to show — **nothing is ever deleted**), and notifications skip it.
 
 The dashboard is sortable by **discovery score**, **fit**, freshness, deadline, and more, with substring/ATS/remote filters and CSV export. A **Contacts** view lists discovered people per company with confidence-labelled emails and its own CSV export.
@@ -164,6 +164,49 @@ Conventions: Python 3.12+, async, fully typed (mypy strict), pydantic v2. Keep c
 - **Add an ATS** — implement a `Source` subclass under `sources/tier_*`, decorate with `@register_source`, add a fixture + test mirroring `sources/tier_a/recruitee.py`.
 - **Add a discoverer** — implement a function returning `list[Detection]` under `discovery/`, feed it through `discovery/merge.py`. a
 - **Contribute boards** — append real `(ats, token)` lines to `registry/boards.jsonl`; CI validates uniqueness and known ATSs.
+
+## MCP server (use it from Claude)
+
+InternHunter ships an [MCP](https://modelcontextprotocol.io) server so Claude can query
+your discovered internships, fit ratings, and outreach contacts directly. It's read-only
+over the local SQLite DB — no network, no writes.
+
+```bash
+pip install -e ".[mcp]"
+internhunter mcp          # serves over stdio
+```
+
+**Tools:** `search_jobs` (keyword/remote/location/ATS/min-fit filters, sortable by fit /
+recency / deadline), `top_internships` (best LLM-rated picks), `get_job` (full posting +
+apply URL + that company's contacts), `get_contacts` (recruiters/managers with
+confidence-labelled emails + LinkedIn), `get_company` (profile + jobs + contacts), `stats`.
+
+**Claude Desktop** — add to `claude_desktop_config.json`. To use the data on a
+self-hosted box, run it over SSH (stdio tunnels cleanly):
+
+```json
+{
+  "mcpServers": {
+    "internhunter": {
+      "command": "ssh",
+      "args": ["YOUR_SSH_HOST", "cd /path/to/internhunter && .venv/bin/internhunter mcp"]
+    }
+  }
+}
+```
+
+Or, if running locally where the DB lives:
+
+```json
+{
+  "mcpServers": {
+    "internhunter": { "command": "internhunter", "args": ["mcp"] }
+  }
+}
+```
+
+Then ask Claude things like *"top 10 remote SWE internships I should apply to"*, *"who do I
+email at Acme and what's the link"*, or *"show the full posting for this job_uid"*.
 
 ## License
 

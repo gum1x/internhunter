@@ -10,7 +10,11 @@ from urllib.parse import urlencode
 if TYPE_CHECKING:
     from internhunter.core.fetch import FetchContext
 
-_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+# Bounded segments + boundaries: avoids catastrophic backtracking on hostile blobs.
+_EMAIL_RE = re.compile(
+    r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]{1,64}"
+    r"@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){0,8}\.[A-Za-z]{2,24}"
+)
 
 # Generic-but-useful recruiting inboxes — legitimately the intended outreach target.
 RECRUITING_ALIASES = [
@@ -117,15 +121,35 @@ async def harvest_commit_patch_email(
         return None
     for line in text.splitlines():
         if line.startswith("From:"):
-            emails = extract_emails(line)
-            for email in emails:
-                if "users.noreply.github.com" in email:
-                    continue
-                if domain and not email.endswith("@" + domain.lower()):
-                    continue
-                return email
-            break  # first From: header only (the patch author)
+            email = _mailbox_from_header(line)
+            if email is None:
+                return None
+            email_domain = email.rpartition("@")[2].lower()
+            if email_domain == "users.noreply.github.com" or email_domain.endswith(
+                ".noreply.github.com"
+            ):
+                return None
+            if domain and not email.endswith("@" + domain.lower()):
+                return None
+            return email
     return None
+
+
+def _mailbox_from_header(line: str) -> str | None:
+    """The single author address in an mbox ``From:`` header, or None.
+
+    Parses a real mailbox: the address inside ``<...>`` if present, else the sole bare
+    token. A display name like ``"admin@acme.com" <attacker@evil.com>`` must NOT leak the
+    quoted address — so any line carrying more than one candidate address is rejected.
+    """
+    all_emails = extract_emails(line)
+    if len(all_emails) != 1:
+        return None  # zero, or an injected second address in the display name
+    bracket = re.search(r"<([^<>]+)>", line)
+    if bracket:
+        inside = extract_emails(bracket.group(1))
+        return inside[0] if len(inside) == 1 else None
+    return all_emails[0]
 
 
 async def harvest_github_login_email(

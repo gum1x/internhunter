@@ -1,0 +1,1 @@
+"""Zero-touch session automation for gated sources."""

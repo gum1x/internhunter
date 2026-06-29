@@ -51,3 +51,22 @@ async def test_rdap_emails_empty_when_no_contacts(fake_fetch_context) -> None:  
         200, text=json.dumps({"objectClassName": "domain", "entities": []})
     )
     assert await rdap_emails(ctx, "acme.com") == []
+
+
+async def test_rdap_emails_filter_domain_drops_offdomain(fake_fetch_context) -> None:  # type: ignore[no-untyped-def]
+    # RDAP exposes registrar/abuse contacts off the target domain; with a filter only
+    # @acme.com survives so the company corpus isn't polluted.
+    ctx = fake_fetch_context
+    ctx.responses[_URL] = httpx.Response(
+        200,
+        text=json.dumps(
+            {
+                "entities": [
+                    {"vcardArray": _vcard("owner@acme.com")},
+                    {"vcardArray": _vcard("abuse@registrar.example")},
+                    {"vcardArray": _vcard("privacy@whoisprivacy.com")},
+                ]
+            }
+        ),
+    )
+    assert await rdap_emails(ctx, "acme.com", filter_domain="acme.com") == ["owner@acme.com"]

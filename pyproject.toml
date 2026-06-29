@@ -49,6 +49,9 @@ disclosure = [
 resume = [
     "pypdf",
 ]
+mcp = [
+    "mcp>=1.2",
+]
 dev = [
     "pytest",
     "pytest-asyncio",
@@ -82,6 +85,7 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 "internhunter/contacts/email/verify_github.py" = ["ASYNC109"]
 "internhunter/contacts/email/verify_gravatar.py" = ["ASYNC109"]
 "internhunter/contacts/email/verify_m365.py" = ["ASYNC109"]
+"internhunter/sessions/tempmail.py" = ["ASYNC109"]
 "tests/test_browser.py" = ["ASYNC109"]
 
 [tool.mypy]
@@ -91,7 +95,7 @@ warn_unused_ignores = true
 disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["sentence_transformers", "yaml", "playwright.async_api", "cloakbrowser", "anthropic", "apscheduler", "apscheduler.*", "unidecode", "dns", "dns.*", "github", "staffspy", "holehe", "holehe.*", "pypdf", "openpyxl", "curl_cffi", "curl_cffi.*"]
+module = ["sentence_transformers", "yaml", "playwright.async_api", "cloakbrowser", "anthropic", "apscheduler", "apscheduler.*", "unidecode", "dns", "dns.*", "github", "staffspy", "holehe", "holehe.*", "pypdf", "openpyxl", "mcp", "mcp.*", "curl_cffi", "curl_cffi.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

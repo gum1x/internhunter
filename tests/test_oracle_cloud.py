@@ -52,3 +52,18 @@ async def test_oracle_cloud_poll_yields_normalized_jobs(fake_fetch_context: Any)
     assert senior.source_job_id == "REQ67890"
     assert senior.is_internship is False
     assert senior.internship_kind is None
+
+
+@pytest.mark.asyncio
+async def test_oracle_cloud_poll_non_dict_response_yields_empty(fake_fetch_context: Any) -> None:
+    from internhunter.sources.tier_c.oracle_cloud import OracleCloudSource
+
+    source = OracleCloudSource()
+    ref = BoardRef(ats="oracle_cloud", token="acme", extra={"site": "CX_1001"})
+    fake_fetch_context.responses[source.board_url(ref)] = httpx.Response(
+        200, content=b"null", headers={"content-type": "application/json"}
+    )
+
+    jobs = await source.poll(ref, fake_fetch_context)
+
+    assert jobs == []

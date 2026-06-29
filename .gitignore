@@ -14,3 +14,5 @@ build/
 internhunter.feed.xml
 *.log
 logs/
+*.db-shm
+*.db-wal
