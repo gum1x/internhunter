@@ -228,6 +228,7 @@ def run_notify(
                     warm_intro=alert.connection is not None,
                     connection_name=alert.connection.name if alert.connection else None,
                     intro_draft=intro,
+                    settings=resolved,
                 )
                 if tracked is not None:
                     summary.tracked += 1

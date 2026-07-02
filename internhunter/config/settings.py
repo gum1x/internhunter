@@ -53,6 +53,15 @@ class Settings(BaseSettings):
     # True  -> alert only on jobs matching targets.yaml.
     notify_require_target_match: bool = False
     notify_track_alerts: bool = True  # auto-record every alerted job in the tracker
+    # --- company dossiers + outreach enrichment ---
+    pitch_path: Path = Path("internhunter/config/pitch.yaml")
+    dossier_dir: Path = Path("dossiers")
+    dossier_staleness_days: int = 30  # rebuild a firm's dossier after this many days
+    dossier_use_llm: bool = True  # synthesize with the configured LLM backend when available
+    dossier_max_pages: int = 5  # public pages fetched per firm (homepage/about/blog/news/team)
+    dossier_signal_days: int = 180  # "recent signal" window
+    enable_scheduled_dossier: bool = True
+    dossier_interval_min: int = 1440  # daily refresh of stale/missing dossiers
     auth_user: str = ""
     auth_pass: str = ""
     dashboard_limit: int = 2000

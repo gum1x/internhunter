@@ -11,6 +11,10 @@ import csv
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from internhunter.config.settings import Settings
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -67,6 +71,8 @@ def track_job(
     connection_name: str | None = None,
     intro_draft: str | None = None,
     notes: str | None = None,
+    enrich: bool = True,
+    settings: Settings | None = None,
 ) -> Application | None:
     """Record a job in the pipeline (idempotent on job_uid). Returns the new row, or
     None when the job is already tracked — existing rows are never overwritten, so a
@@ -97,6 +103,10 @@ def track_job(
             session.add(app)
     except IntegrityError:
         return None
+    if enrich:
+        from internhunter.outreach import enrich_application
+
+        enrich_application(session, app, job, settings)
     return app
 
 

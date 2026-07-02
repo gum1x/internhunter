@@ -1,5 +1,107 @@
 # BUILD_LOG — InternHunter → internship-landing system
 
+---
+
+# Round 2 — Company dossiers + outreach enrichment (2026-07-02)
+
+Two additions on top of the round-1 system: a per-firm research **dossier generator**
+(`internhunter dossier build`) and an **outreach enrichment pass** that attaches the
+dossier, likely contact, and a register-correct draft to every tracked posting.
+Status: **built, tested (583 passing), live two-firm trace completed.**
+
+## What was built
+
+### Dossier generator
+- **`internhunter/dossier/research.py`** — keyless public-page research per firm:
+  homepage/about/blog/news/team through the shared rate-limited + disk-cached fetcher
+  (one firm at a time, ≤5 pages), meta/og description, schema.org Organization facts
+  (team size, founded), **dated** blog/news links as signal candidates (undated or
+  question-headline links are never treated as news), optional SearXNG search.
+- **`internhunter/dossier/build.py`** — orchestration: staleness-windowed incremental
+  builds (`dossier_staleness_days`, `--force`), LLM synthesis via the existing backend
+  (claude CLI / API / local) with **anti-fabrication validation**, heuristic fallback
+  when no LLM is available, deterministic confidence rubric, `dossiers/<slug>.md` +
+  `dossiers/index.json` + a `dossiers` DB table as the machine-readable index.
+- Signals also come from already-verified government data in the DB (recent SEC Form D
+  via EDGAR leads, SBIR filings).
+- **`internhunter/config/pitch.yaml`** — Ryan's positioning/proof points and per-tag
+  "why I fit" angle lines; the dossier's why-fit is seeded from the firm's tags and
+  never invents firm facts.
+
+### Anti-fabrication design (criterion 2)
+- The LLM never writes a URL, person, or number into a dossier: it summarizes fetched
+  text and **selects a signal by index** from deterministically extracted, dated
+  candidates (an explicit "nothing notable" is respected).
+- `validate_synthesis` drops any stage/team-size value that does not literally appear
+  in the fetched material.
+- Contacts come only from the contacts pipeline's provenance-carrying rows
+  (`person_source` required; emails only if verified/probable). No named person found →
+  the dossier says so explicitly and records a real channel (registry board URL or
+  `https://<domain>/careers`).
+- Confidence is computed by rubric (high = summary + dated signal + sourced contact;
+  low = thin/no summary), never self-reported by the LLM.
+
+### Outreach enrichment
+- **`internhunter/outreach.py`** — runs inside `track_job` (so both alerted and
+  dashboard-tracked postings enrich): attaches the dossier (slug/canonical-name/domain/
+  board-token matching — greenhouse's `wehrtyou` resolves to Hudson River Trading via
+  the registry), fills the contact, and stores a register-correct draft: warm rows get
+  the connections.yaml intro ask; cold rows get a 3-5 sentence founder/eng-lead message
+  seeded from the dossier + pitch with a literal `{{proof_link}}` placeholder.
+- No dossier yet → the row stays flagged (`dossier_slug IS NULL`, ⏳ in the dashboard);
+  the next `dossier build` (scheduled daily) researches that firm — even if it's not in
+  targets.yaml — and **backfills** the pending rows.
+- `internhunter tracker draft <id>` prints the enriched contact + dossier + draft.
+- Dashboard tracker rows show 🤝/📋/⏳/✉️ status per posting.
+
+## Key decisions
+- Dossier synthesis reuses the existing `llm/client.py` backend chain (cli/api/local)
+  with on-disk caching; `dossier_use_llm=false` or a missing backend degrades to the
+  deterministic heuristic — the pipeline never blocks on an LLM.
+- Drafts are deliberately template-seeded (dossier facts + pitch angles), so a wrong
+  claim can't be generated: every sentence traces to targets.yaml tags, pitch.yaml
+  claims, or verified dossier fields.
+- Enrichment never overwrites user edits: existing contact/draft/company values are
+  preserved; only token-looking company snapshots are upgraded to the verified name.
+
+## Live two-firm trace (criterion 6)
+Fresh DB → polled live `ashby/polymarket` (56 jobs) + `greenhouse/wehrtyou` (75 jobs) →
+`dossier build --company polymarket` and `--company hudson-river-trading` ran real web
+fetches + claude-CLI synthesis:
+- **Polymarket** — summary correctly says it runs a prediction market with 0-100¢
+  implied-probability shares; about/blog/team pages 403'd (bot-wall) and are recorded
+  in notes; no fabricated contact — channel `polymarket.com/careers`; confidence medium.
+- **HRT** — summary correctly identifies an automated liquidity-providing trading firm;
+  channel `hudsonrivertrading.com/careers`; confidence medium.
+- The first Polymarket build surfaced two real bugs, both fixed with tests: market
+  question pages ("Will X happen?") were being picked as company news (now filtered +
+  the LLM's explicit null respected), and the fallback channel showed an Ashby API URL
+  (now prefers a human careers URL).
+- `notify --channel feed` → 3 alerts auto-tracked and enriched: the Polymarket row came
+  out 🤝 warm (intro ask via the price-discovery contact), the HRT rows ❄️ cold with
+  send-ready drafts greeting "Hi Hudson River Trading team", referencing HRT's actual
+  business, and carrying `{{proof_link}}`.
+
+## Blockers / caveats
+1. **Named contacts require the contacts pipeline to have run** (`find-contacts`);
+   in a fresh DB dossiers honestly report "no named person verified" with the careers
+   channel. Run `internhunter find-contacts --company <slug>` to upgrade a firm, then
+   `dossier build --company <slug> --force`.
+2. Several target firms' sites bot-wall subpages (Polymarket about/blog/team 403);
+   dossiers note every failed fetch and confidence caps at medium without a signal.
+3. Stage/funding data rarely appears on firms' own pages; without SearXNG configured it
+   is usually "not verified" (deliberate: no invented funding numbers). Configure
+   `INTERNHUNTER_SEARXNG_URL` to improve stage/signal coverage.
+
+## Verification
+- 583 tests pass, ruff clean, mypy --strict clean (165 files). New: research
+  extraction (10), build/validation/confidence/incremental (14), outreach/enrichment
+  (13), scheduler dossier job (1), plus updated tracker/scheduler suites.
+
+---
+
+# Round 1 — alert pipeline, targets, tracker, referrals
+
 Autonomous build extending InternHunter into a push-based, tracked, referral-aware
 pipeline. Scope: (1) source tuning, (2) alert pipeline, (3) pipeline tracker,
 (4) referral engine, (5) cadence/scheduling. Status: **built, tested (550 passing),

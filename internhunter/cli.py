@@ -300,6 +300,63 @@ def _cmd_notify(args: argparse.Namespace) -> None:
         print(f"  ! {error}")
 
 
+def _cmd_dossier(args: argparse.Namespace) -> None:
+    from internhunter.config.settings import get_settings
+    from internhunter.core.db import get_session, init_db
+
+    settings = get_settings()
+    if args.action == "build":
+        from internhunter.dossier.build import run_build_dossiers
+
+        summary = run_build_dossiers(
+            settings=settings,
+            only_slug=args.company,
+            force=args.force,
+            limit=args.limit,
+        )
+        print(
+            f"dossiers: {summary.built} built, {summary.skipped_fresh} fresh (skipped), "
+            f"{summary.thin} thin/low-confidence, {summary.backfilled} tracker rows backfilled"
+        )
+        for error in summary.errors[:10]:
+            print(f"  ! {error}")
+        if summary.built:
+            print(f"  files -> {settings.dossier_dir}/")
+        return
+
+    from sqlalchemy import select
+
+    from internhunter.core.db import Dossier
+
+    init_db()
+    session = get_session()
+    try:
+        if args.action == "show":
+            from internhunter.dossier.build import render_markdown
+
+            dossier = session.scalar(
+                select(Dossier).where(Dossier.company_slug == args.company)
+            )
+            if dossier is None:
+                raise SystemExit(
+                    f"no dossier for {args.company!r} — run: internhunter dossier build "
+                    f"--company {args.company}"
+                )
+            print(render_markdown(dossier), end="")
+        elif args.action == "list":
+            rows = list(session.scalars(select(Dossier)))
+            if not rows:
+                print("no dossiers yet — run `internhunter dossier build`")
+            for d in sorted(rows, key=lambda x: x.company_slug):
+                contact = d.contact_name or (d.contact_channel and "channel") or "—"
+                print(
+                    f"  {d.company_slug:28} {d.confidence:6}  built {d.built_at.date()}  "
+                    f"contact: {contact}"
+                )
+    finally:
+        session.close()
+
+
 def _cmd_tracker(args: argparse.Namespace) -> None:
     from pathlib import Path
 
@@ -336,6 +393,14 @@ def _cmd_tracker(args: argparse.Namespace) -> None:
                 raise SystemExit(f"no tracked application matches {args.ident!r}")
             session.commit()
             print(f"#{app.id} {app.company} — {app.role}: stage -> {app.status}")
+        elif args.action == "draft":
+            from internhunter.outreach import format_draft
+            from internhunter.tracker import find_application
+
+            app = find_application(session, args.ident)
+            if app is None:
+                raise SystemExit(f"no tracked application matches {args.ident!r}")
+            print(format_draft(session, app))
         elif args.action == "intro":
             from internhunter.tracker import find_application
 
@@ -575,8 +640,22 @@ def main() -> None:
     tracker_set.add_argument("stage", help=stage_help)
     tracker_intro = tracker_sub.add_parser("intro", help="print the draft intro-request message")
     tracker_intro.add_argument("ident", help="application id or job_uid")
+    tracker_draft = tracker_sub.add_parser(
+        "draft", help="print the enriched contact + outreach draft for a tracked posting"
+    )
+    tracker_draft.add_argument("ident", help="application id or job_uid")
     tracker_export = tracker_sub.add_parser("export")
     tracker_export.add_argument("--out", default="tracker.csv")
+
+    dossier = subparsers.add_parser("dossier", help="company research dossiers")
+    dossier_sub = dossier.add_subparsers(dest="action", required=True)
+    dossier_build = dossier_sub.add_parser("build")
+    dossier_build.add_argument("--company", default=None, help="single firm slug")
+    dossier_build.add_argument("--force", action="store_true", help="ignore staleness window")
+    dossier_build.add_argument("--limit", type=int, default=None, help="max firms this run")
+    dossier_show = dossier_sub.add_parser("show")
+    dossier_show.add_argument("company", help="firm slug (see `dossier list`)")
+    dossier_sub.add_parser("list")
 
     schedule = subparsers.add_parser("schedule")
     schedule.add_argument("--run-now", action="store_true")
@@ -630,6 +709,9 @@ def main() -> None:
         return
     if args.command == "tracker":
         _cmd_tracker(args)
+        return
+    if args.command == "dossier":
+        _cmd_dossier(args)
         return
     if args.command == "schedule":
         _cmd_schedule(args)

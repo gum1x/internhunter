@@ -18,7 +18,6 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import Select, func, or_, select
-from sqlalchemy.exc import IntegrityError
 
 from internhunter.config.settings import get_settings
 from internhunter.core.db import (
@@ -747,24 +746,12 @@ def create_app() -> FastAPI:
                 job = session.scalar(select(Job).where(Job.job_uid == job_uid))
                 if job is None:
                     return HTMLResponse("unknown job", status_code=404)
-                session.add(
-                    Application(
-                        job_uid=job_uid,
-                        status="To Apply",
-                        company=job.company,
-                        company_slug=job.company_slug,
-                        role=job.title,
-                        location=job.location_normalized or job.location_raw,
-                        link=job.canonical_url,
-                        due_date=job.deadline_at,
-                    )
-                )
-                try:
-                    session.commit()
-                except IntegrityError:
-                    # A concurrent request (double-click / two tabs) won the race and
-                    # inserted first — the unique constraint rejected ours. Already tracked.
-                    session.rollback()
+                from internhunter.tracker import track_job as _track
+
+                # track_job is race-safe (SAVEPOINT) and runs the outreach enrichment
+                # pass (dossier attach + register-correct draft), same as alerted jobs.
+                _track(session, job)
+                session.commit()
         finally:
             session.close()
         return HTMLResponse(_TRACKED_BADGE)

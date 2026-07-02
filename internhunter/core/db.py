@@ -183,9 +183,52 @@ class Application(Base):
     warm_intro: Mapped[bool] = mapped_column(Boolean, default=False)
     connection_name: Mapped[str | None] = mapped_column(String, nullable=True)
     intro_draft: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Outreach enrichment: which dossier informed this row (None = "no dossier yet";
+    # the scheduled dossier pass builds it and backfills), plus the cold-outreach draft.
+    # Warm rows keep their ask in intro_draft; `tracker draft` picks the right register.
+    dossier_slug: Mapped[str | None] = mapped_column(String, nullable=True)
+    outreach_draft: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
+class Dossier(Base):
+    """One structured research dossier per target firm — the machine-readable index the
+    enrichment pass reads (a human-readable twin lives at ``dossiers/<slug>.md``).
+    Anti-fabrication invariant: every named person/number/signal here traces to a
+    source URL in ``sources`` or an existing provenance-carrying table (contacts,
+    officer/disclosure leads); synthesis may summarize but never invent."""
+
+    __tablename__ = "dossiers"
+    __table_args__ = (UniqueConstraint("company_slug", name="uq_dossiers_company_slug"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    company_slug: Mapped[str] = mapped_column(String, index=True)
+    company_name: Mapped[str] = mapped_column(String)
+    domain: Mapped[str | None] = mapped_column(String, nullable=True)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)  # two plain sentences
+    stage: Mapped[str | None] = mapped_column(String, nullable=True)
+    team_size: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    signal_title: Mapped[str | None] = mapped_column(String, nullable=True)
+    signal_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    signal_date: Mapped[str | None] = mapped_column(String, nullable=True)  # ISO date
+
+    contact_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    contact_title: Mapped[str | None] = mapped_column(String, nullable=True)
+    contact_email: Mapped[str | None] = mapped_column(String, nullable=True)
+    # provenance URL/tag for the named person; channel is the fallback when unnamed
+    contact_source: Mapped[str | None] = mapped_column(String, nullable=True)
+    contact_channel: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    why_fit: Mapped[str | None] = mapped_column(Text, nullable=True)
+    confidence: Mapped[str] = mapped_column(String, default="low")  # high | medium | low
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)  # blockers / omissions
+    sources: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    built_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
 class DiscoveryRun(Base):
@@ -382,6 +425,8 @@ _ADDED_COLUMNS: dict[str, list[tuple[str, str]]] = {
         ("warm_intro", "BOOLEAN"),
         ("connection_name", "VARCHAR"),
         ("intro_draft", "TEXT"),
+        ("dossier_slug", "VARCHAR"),
+        ("outreach_draft", "TEXT"),
     ],
 }
 

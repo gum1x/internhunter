@@ -101,6 +101,15 @@ def build_scheduler(settings: Settings | None = None) -> BackgroundScheduler:
             kwargs={"settings": settings},
             id="notify",
         )
+    if resolved.enable_scheduled_dossier:
+        from internhunter.dossier.build import run_build_dossiers
+
+        scheduler.add_job(
+            run_build_dossiers,
+            trigger=IntervalTrigger(minutes=resolved.dossier_interval_min),
+            kwargs={"settings": settings},
+            id="dossier",
+        )
     if resolved.enable_session_refresh:
         from internhunter.sessions.refresh import run_refresh_sessions
 

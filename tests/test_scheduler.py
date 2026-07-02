@@ -29,6 +29,7 @@ def test_build_scheduler_jobs() -> None:
         "score",
         "score-llm",
         "notify",
+        "dossier",
         "refresh-sessions",
     }
     for job in jobs:
@@ -57,6 +58,11 @@ def test_notify_interval_configurable() -> None:
     job = scheduler.get_job("notify")
     assert job is not None
     assert job.trigger.interval.total_seconds() == 600
+
+
+def test_scheduled_dossier_can_be_disabled() -> None:
+    scheduler = build_scheduler(Settings(enable_scheduled_dossier=False))
+    assert "dossier" not in {job.id for job in scheduler.get_jobs()}
 
 
 def test_greenhouse_frontier_has_its_own_toggle() -> None:

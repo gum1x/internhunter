@@ -96,6 +96,25 @@ docker compose up -d --build
 0 3 * * *     cd /home/you/internhunter && .venv/bin/internhunter discover-all >> discover.log 2>&1
 ```
 
+## 4b. Dossiers & outreach drafts
+
+Fill in **`internhunter/config/pitch.yaml`** (your positioning, proof points, and
+per-tag "why I fit" lines — drafts are assembled only from these claims plus verified
+dossier facts), then:
+
+```bash
+internhunter dossier build            # researches every target firm; incremental
+internhunter dossier list             # confidence + contact per firm
+internhunter tracker draft <id>       # send-ready outreach for a tracked posting
+```
+
+The scheduler rebuilds stale/missing dossiers daily (`INTERNHUNTER_DOSSIER_*` vars),
+including firms that entered the tracker but aren't in targets.yaml. Set
+`{{proof_link}}` per message (or keep one canonical proof URL handy). To get *named*
+contacts into dossiers, run the contacts pipeline first for the firms you care about:
+`internhunter find-contacts --company <slug>` then
+`internhunter dossier build --company <slug> --force`.
+
 ## 5. Working the pipeline
 
 Every alerted posting lands in the tracker at stage **found** automatically. Advance it

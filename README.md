@@ -105,6 +105,11 @@ internhunter tracker summary                           # pipeline counts per sta
 internhunter tracker set 12 referral-requested         # advance a tracked application
 internhunter tracker intro 12                          # draft warm-intro ask for row 12
 internhunter tracker export --out pipeline.csv         # one exportable view
+internhunter dossier build                             # research every target firm (incremental)
+internhunter dossier build --company polymarket --force
+internhunter dossier list                              # slug, confidence, contact per firm
+internhunter dossier show polymarket                   # print the markdown dossier
+internhunter tracker draft 12                          # enriched contact + outreach draft
 internhunter serve                                     # FastAPI + HTMX dashboard
 ```
 
@@ -130,6 +135,27 @@ as CSV. Nothing falls through the cracks as volume rises.
 network. A matched posting at one of those firms is flagged 🤝 **warm intro** in both
 the alert and the tracker — with a ready-to-send draft intro-request
 (`internhunter tracker intro <id>`); everything else is flagged ❄️ cold apply.
+
+## Company dossiers & outreach drafts
+
+`internhunter dossier build` researches every firm in targets.yaml (plus any tracked
+firm that lacks one): what they actually do in two plain sentences, stage/size when
+verifiable, a dated recent signal with source link, the likely contact **with
+provenance** (from the contacts pipeline — never guessed; no named person found means
+the dossier says so and records the careers channel instead), and a one-line "why I
+fit" seeded from **`internhunter/config/pitch.yaml`** (your positioning + per-tag
+angles). Output: `dossiers/<slug>.md` per firm + `dossiers/index.json` + a DB index;
+incremental with a staleness window, re-runnable, scheduled daily. Synthesis uses the
+existing LLM backend when available and clamps every claim to the fetched material —
+unverified fields say "not verified" with confidence high/medium/low computed by
+rubric.
+
+Every tracked posting is auto-enriched: dossier attached (⏳ until one exists — the
+next build researches that firm and backfills), contact filled, and a register-correct
+outreach draft stored — the warm-intro ask when connections.yaml shows a path, or a
+3-5 sentence cold founder/eng-lead message tied to what the firm actually does, with a
+`{{proof_link}}` placeholder you fill once. `internhunter tracker draft <id>` prints
+the send-ready package; the dashboard shows 🤝/📋/✉️ status per row.
 
 ### What grows coverage & filters slop
 

@@ -1,0 +1,61 @@
+# Your outreach identity: the raw material every "why I fit" line and outreach draft is
+# built from. Edit freely — nothing here is fabricated by the system; drafts only ever
+# combine these claims (yours) with facts the dossier verified about the firm.
+
+name: Ryan
+positioning: >
+  Sophomore builder who ships. Products end to end, a 100M+ monthly-reach social
+  distribution engine, quant price-discovery research with CFTC-affiliated faculty,
+  and bootstrapped online businesses with real revenue — one person who covers
+  engineering, growth, and research.
+
+proof_points:
+  - shipped consumer products end to end, solo
+  - built and runs social distribution with 100M+ monthly reach
+  - quant price-discovery research on prediction markets with CFTC-affiliated faculty
+  - bootstrapped online businesses with real revenue history
+
+# The seed of the one-line "why Ryan fits". Keyed by targets.yaml firm tags; the FIRST
+# tag on the firm that has an angle here wins; `default` is the fallback. `{company}`
+# is substituted. Keep each line one sentence, first person, specific.
+angles:
+  prediction-markets: >-
+    I do price-discovery research on prediction markets with CFTC-affiliated faculty —
+    {company}'s core mechanism is the thing I already study — and I bring 100M+/month
+    of organic distribution on top.
+  quant: >-
+    my quant price-discovery research with CFTC-affiliated faculty means I show up
+    already fluent in the market-microstructure questions {company} works on.
+  market-microstructure: >-
+    my price-discovery research with CFTC-affiliated faculty is exactly the
+    microstructure ground {company} trades on.
+  ai: >-
+    I ship AI products end to end and bring 100M+/month of organic distribution, so
+    what I build at {company} gets used, not just demoed.
+  growth: >-
+    I've grown social channels past 100M monthly reach and run revenue-positive online
+    businesses — {company}'s growth problems are ones I've solved with my own money on
+    the line.
+  fintech: >-
+    I've run real-revenue online businesses and study market microstructure, so I
+    understand both the product and the money-movement side of what {company} builds.
+  devtools: >-
+    I'm the power user {company} builds for — a solo builder shipping products end to
+    end — and I bring 100M+/month of distribution to show what I make with it.
+  crypto: >-
+    I research price discovery on crypto-adjacent prediction markets with
+    CFTC-affiliated faculty and ship products end to end.
+  defense: >-
+    I'm a self-taught engineer who ships fast under constraints, with quant research
+    rigor from work alongside CFTC-affiliated faculty.
+  startup: >-
+    small founder-led teams are where a multi-threaded builder is the feature — I cover
+    engineering, growth (100M+/mo reach), and research in one seat.
+  default: >-
+    I'm a multi-threaded builder — shipped products, 100M+ monthly social reach, quant
+    price-discovery research — the profile that compounds on a small team like
+    {company}'s.
+
+# Outreach defaults. {{proof_link}} is left verbatim in every draft — set it once here
+# when you have the artifact, or fill it in per message before sending.
+proof_link_hint: ""   # e.g. a portfolio/case-study URL; informational only
