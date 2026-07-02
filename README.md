@@ -53,6 +53,7 @@ recover the real ATS board behind each apply link where it exists (`reresolve` u
 | **Bundesagentur (DE)** | keyless (public `X-API-Key` constant) | native Praktikum/Trainee filter + real apply URLs |
 | **Idealist** | keyless Algolia backend | nonprofit / mission-driven internships; verified live |
 | **Handshake** | **requires a university login session** | the one exception — no public/no-login feed exists; inert unless you supply your own session |
+| **Wellfound** | opt-in (`ENABLE_WELLFOUND`) | no official feed + ToS-restricted + bot-walled; reads robots-allowed company pages for slugs you list; fail-soft |
 | **Simplify / community lists** | keyless GitHub JSON | already ingested via `--source github` |
 
 ## Commands
@@ -98,8 +99,37 @@ internhunter ingest --source sbir                      # SBIR/STTR awards -> fun
 internhunter find-contacts --limit 50                  # find recruiters/hiring contacts + emails per company
 internhunter find-contacts --company acme --methods searxng,github --verify
 internhunter find-contacts --company acme --methods gov_disclosure --verify  # government-filing contacts
+internhunter notify --dry-run                          # what would alert right now
+internhunter notify                                    # push new matches (Telegram/Discord/ntfy/feed)
+internhunter tracker summary                           # pipeline counts per stage
+internhunter tracker set 12 referral-requested         # advance a tracked application
+internhunter tracker intro 12                          # draft warm-intro ask for row 12
+internhunter tracker export --out pipeline.csv         # one exportable view
 internhunter serve                                     # FastAPI + HTMX dashboard
 ```
+
+## Alerts, pipeline tracker & referrals
+
+InternHunter is a **push system**: a scheduled alert pass (every 30 min by default)
+finds postings it has never alerted on, filters them through
+**`internhunter/config/targets.yaml`** — your one-file list of target firms, include /
+exclude keywords, seniority (intern / early / founding), locations, remote policy, and
+funding stages — and pushes each match to **Telegram** (plus Discord / ntfy / RSS if
+configured) with company, role, direct apply link, posting age, and score. Set
+`INTERNHUNTER_TELEGRAM_BOT_TOKEN` + `INTERNHUNTER_TELEGRAM_CHAT_ID` (see
+[docs/SETUP.md](docs/SETUP.md)). Alerts are exactly-once per posting (failed sends
+retry next run), capped per cycle, and a lookback window keeps a first run on a full
+database from flooding your phone.
+
+Every alerted posting is auto-recorded in the **pipeline tracker** at stage *found*;
+advance it through *applied → referral-requested → interview → offer / rejected* from
+the CLI (`internhunter tracker`) or the web dashboard, and export the whole pipeline
+as CSV. Nothing falls through the cracks as volume rises.
+
+**`internhunter/config/connections.yaml`** maps firms/domains to people in your
+network. A matched posting at one of those firms is flagged 🤝 **warm intro** in both
+the alert and the tracker — with a ready-to-send draft intro-request
+(`internhunter tracker intro <id>`); everything else is flagged ❄️ cold apply.
 
 ### What grows coverage & filters slop
 
@@ -136,7 +166,10 @@ core/dedup.py                     exact (url_hash) + fuzzy (company+title+locati
 discovery/                        fingerprint detection + Common Crawl / sitemap / SearXNG / HN discoverers + registry merge
 match/                            sentence-transformers embeddings, cosine fit, rarity/freshness -> discovery score
 llm/                              deep-scoring via `claude -p` (headless) or the Anthropic API (when ANTHROPIC_API_KEY is set)
-notify/                           Discord / ntfy / email / RSS on new high-fit + deadline-approaching roles
+notify/                           Telegram / Discord / ntfy / email / RSS; runner.py = scheduled once-only alert pass
+match/targets.py + config/targets.yaml      target-firm + keyword filter layer (one user-editable file)
+referrals.py + config/connections.yaml      network graph -> warm-intro flags + draft intro asks
+tracker.py                        pipeline stages: found -> applied -> referral-requested -> interview -> offer/rejected
 scheduler.py                      APScheduler per-ATS cadence (Tier A frequent, Tier C slow)
 web/                              FastAPI + HTMX dashboard
 registry/boards.jsonl             committed, community-contributable seed registry

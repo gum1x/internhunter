@@ -131,6 +131,10 @@ class Job(Base):
     quality_model: Mapped[str | None] = mapped_column(String, nullable=True)
     quality_checked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
+    # Stamped when a push alert for this job was delivered; the alert runner only
+    # considers rows where this is NULL, so each posting alerts exactly once.
+    notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
     raw: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
 
@@ -174,6 +178,11 @@ class Application(Base):
     contact_email: Mapped[str | None] = mapped_column(String, nullable=True)
     applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     resume_path: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Referral engine: set at track-time when connections.yaml maps this firm to someone
+    # in the user's network. Cold applies keep warm_intro=False.
+    warm_intro: Mapped[bool] = mapped_column(Boolean, default=False)
+    connection_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    intro_draft: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
@@ -353,6 +362,7 @@ _ADDED_COLUMNS: dict[str, list[tuple[str, str]]] = {
         ("quality_confidence", "FLOAT"),
         ("quality_model", "VARCHAR"),
         ("quality_checked_at", "DATETIME"),
+        ("notified_at", "DATETIME"),
     ],
     "companies": [
         ("domain_confidence", "FLOAT"),
@@ -369,6 +379,9 @@ _ADDED_COLUMNS: dict[str, list[tuple[str, str]]] = {
         ("contact_email", "VARCHAR"),
         ("applied_at", "DATETIME"),
         ("created_at", "DATETIME"),
+        ("warm_intro", "BOOLEAN"),
+        ("connection_name", "VARCHAR"),
+        ("intro_draft", "TEXT"),
     ],
 }
 

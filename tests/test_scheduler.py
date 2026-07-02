@@ -28,6 +28,7 @@ def test_build_scheduler_jobs() -> None:
         "greenhouse-frontier",
         "score",
         "score-llm",
+        "notify",
         "refresh-sessions",
     }
     for job in jobs:
@@ -44,6 +45,18 @@ def test_scheduled_discovery_can_be_disabled() -> None:
     assert "discover-all" not in jobs
     # The hourly frontier has its own toggle and must NOT be coupled to the daily sweep.
     assert "greenhouse-frontier" in jobs
+
+
+def test_scheduled_notify_can_be_disabled() -> None:
+    scheduler = build_scheduler(Settings(enable_scheduled_notify=False))
+    assert "notify" not in {job.id for job in scheduler.get_jobs()}
+
+
+def test_notify_interval_configurable() -> None:
+    scheduler = build_scheduler(Settings(notify_interval_min=10))
+    job = scheduler.get_job("notify")
+    assert job is not None
+    assert job.trigger.interval.total_seconds() == 600
 
 
 def test_greenhouse_frontier_has_its_own_toggle() -> None:

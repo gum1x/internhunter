@@ -92,6 +92,15 @@ def build_scheduler(settings: Settings | None = None) -> BackgroundScheduler:
             kwargs={"settings": settings},
             id="score-llm",
         )
+    if resolved.enable_scheduled_notify:
+        from internhunter.notify.runner import run_notify
+
+        scheduler.add_job(
+            run_notify,
+            trigger=IntervalTrigger(minutes=resolved.notify_interval_min),
+            kwargs={"settings": settings},
+            id="notify",
+        )
     if resolved.enable_session_refresh:
         from internhunter.sessions.refresh import run_refresh_sessions
 

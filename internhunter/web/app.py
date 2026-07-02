@@ -31,7 +31,9 @@ from internhunter.core.db import (
 )
 
 # Application-tracker pipeline + the badge swapped in when a job is tracked.
-TRACKER_STATUSES = ["To Apply", "Applied", "Interviewing", "Offer", "Rejected"]
+TRACKER_STATUSES = [
+    "To Apply", "Applied", "Referral Requested", "Interviewing", "Offer", "Rejected",
+]
 _TRACKED_BADGE = '<span class="tracked">✓ Tracked</span>'
 
 
@@ -389,7 +391,10 @@ def _role_options() -> list[str]:
 
 
 _EMAIL_RANK = {"verified": 0, "probable": 1, "guessed": 2}
-_STATUS_RANK = {"To Apply": 0, "Applied": 1, "Interviewing": 2, "Offer": 3, "Rejected": 4}
+_STATUS_RANK = {
+    "To Apply": 0, "Applied": 1, "Referral Requested": 2, "Interviewing": 3,
+    "Offer": 4, "Rejected": 5,
+}
 
 
 def _pick_best(contacts: list[Contact]) -> tuple[str | None, str | None]:

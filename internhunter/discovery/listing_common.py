@@ -10,6 +10,7 @@ each ingestor file stays a thin fetcher.
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -48,7 +49,17 @@ class ListingJob:
     extra: dict[str, Any] = field(default_factory=dict)
 
 
-def listing_to_job(item: ListingJob) -> NormalizedJob | None:
+_EARLY_TITLE_RE = re.compile(
+    r"\b(founding (engineer|team|designer|scientist)|first (engineer|hire)"
+    r"|entrepreneur in residence)\b",
+    re.IGNORECASE,
+)
+
+
+def listing_to_job(item: ListingJob, *, keep_early: bool = False) -> NormalizedJob | None:
+    """Normalize one listing. Internships only by default; ``keep_early=True`` also keeps
+    founding/first-hire roles (startup sources), stored with ``is_internship=False`` and an
+    ``early-stage`` level tag so the alert keyword layer can still surface them."""
     url = (item.url or "").strip()
     title = (item.title or "").strip()
     if not url or not title:
@@ -56,7 +67,8 @@ def listing_to_job(item: ListingJob) -> NormalizedJob | None:
 
     description = item.description or ""
     classification = classify_internship(title, description)
-    if not classification.is_internship:
+    is_early = bool(keep_early and _EARLY_TITLE_RE.search(title))
+    if not classification.is_internship and not is_early:
         return None
 
     company = (item.company or "").strip() or None
@@ -75,6 +87,10 @@ def listing_to_job(item: ListingJob) -> NormalizedJob | None:
     if item.extra:
         raw.update(item.extra)
 
+    level_tags = list(classification.level_tags)
+    if is_early and not classification.is_internship and "early-stage" not in level_tags:
+        level_tags.append("early-stage")
+
     return NormalizedJob(
         job_uid=make_job_uid(ats, token, None, url),
         ats=ats,
@@ -85,9 +101,9 @@ def listing_to_job(item: ListingJob) -> NormalizedJob | None:
         company_slug=normalize_company_slug(company or token),
         title=title,
         title_normalized=normalize_title(title),
-        is_internship=True,
-        internship_kind=classification.kind or "intern",
-        level_tags=classification.level_tags,
+        is_internship=classification.is_internship,
+        internship_kind=(classification.kind or "intern") if classification.is_internship else None,
+        level_tags=level_tags,
         location_raw=item.location,
         location_normalized=loc.normalized,
         country=loc.country,
@@ -125,6 +141,7 @@ async def ingest_listings(
     settings: Settings | None = None,
     *,
     need_browser: bool = False,
+    keep_early: bool = False,
 ) -> tuple[int, int, int]:
     """Run a fetcher, normalize + dedupe boards + upsert. Returns (entries, jobs, new_boards).
 
@@ -139,7 +156,9 @@ async def ingest_listings(
     async with build_fetch_context(resolved) as ctx:
         items = await fetcher(ctx, resolved)
 
-    jobs = [job for item in items if (job := listing_to_job(item)) is not None]
+    jobs = [
+        job for item in items if (job := listing_to_job(item, keep_early=keep_early)) is not None
+    ]
     boards = merge_boards(board_refs(jobs))
 
     session = get_session()
