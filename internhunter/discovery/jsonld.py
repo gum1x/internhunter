@@ -34,25 +34,29 @@ def _ld_json_blocks(html: str) -> list[str]:
     ]
 
 
+def extract_jobpostings(html: str) -> list[dict[str, Any]]:
+    """Every schema.org JobPosting object (as a dict) found in the page's JSON-LD."""
+    postings: list[dict[str, Any]] = []
+    for block in _ld_json_blocks(html):
+        try:
+            data = json.loads(block.strip())
+        except json.JSONDecodeError:
+            continue
+        _walk(data, postings)
+    return postings
+
+
 def extract_jobposting_urls(html: str, page_url: str | None = None) -> list[str]:
     """Pull apply/posting URLs from any schema.org JobPosting JSON-LD on the page."""
     urls: list[str] = []
-    for block in _ld_json_blocks(html):
-        block = block.strip()
-        try:
-            data = json.loads(block)
-        except json.JSONDecodeError:
-            continue
-        postings: list[dict[str, Any]] = []
-        _walk(data, postings)
-        for posting in postings:
-            for key in ("url", "applyUrl", "sameAs"):
-                value = posting.get(key)
-                if isinstance(value, str) and value.startswith("http"):
-                    urls.append(value)
-            org = posting.get("hiringOrganization")
-            if isinstance(org, dict) and isinstance(org.get("sameAs"), str):
-                urls.append(org["sameAs"])
+    for posting in extract_jobpostings(html):
+        for key in ("url", "applyUrl", "sameAs"):
+            value = posting.get(key)
+            if isinstance(value, str) and value.startswith("http"):
+                urls.append(value)
+        org = posting.get("hiringOrganization")
+        if isinstance(org, dict) and isinstance(org.get("sameAs"), str):
+            urls.append(org["sameAs"])
     if page_url:
         urls.append(page_url)
     # dedupe, preserve order

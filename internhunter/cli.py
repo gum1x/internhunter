@@ -284,35 +284,141 @@ def _cmd_find_contacts(args: argparse.Namespace) -> None:
 
 
 def _cmd_notify(args: argparse.Namespace) -> None:
-    from sqlalchemy import select
+    from internhunter.notify.runner import run_notify
 
+    summary = run_notify(channel=args.channel, dry_run=args.dry_run)
+    mode = " (dry run)" if args.dry_run else ""
+    print(
+        f"{summary.candidates} new candidates -> {summary.selected} alerts{mode} "
+        f"({summary.warm} warm-intro, {summary.over_cap} held for next run)"
+    )
+    for channel, count in summary.sent.items():
+        print(f"  {channel} -> {count} sent")
+    if summary.marked:
+        print(f"  {summary.marked} marked notified, {summary.tracked} added to tracker")
+    for error in summary.errors[:10]:
+        print(f"  ! {error}")
+
+
+def _cmd_dossier(args: argparse.Namespace) -> None:
     from internhunter.config.settings import get_settings
-    from internhunter.core.db import Job, get_session, init_db
-    from internhunter.notify.discord import build_discord_payload, send_discord
-    from internhunter.notify.feed import write_feed
-    from internhunter.notify.ntfy import build_ntfy_message, send_ntfy
-    from internhunter.notify.select import select_notifiable
+    from internhunter.core.db import get_session, init_db
 
     settings = get_settings()
+    if args.action == "build":
+        from internhunter.dossier.build import run_build_dossiers
+
+        summary = run_build_dossiers(
+            settings=settings,
+            only_slug=args.company,
+            force=args.force,
+            limit=args.limit,
+        )
+        print(
+            f"dossiers: {summary.built} built, {summary.skipped_fresh} fresh (skipped), "
+            f"{summary.thin} thin/low-confidence, {summary.backfilled} tracker rows backfilled"
+        )
+        for error in summary.errors[:10]:
+            print(f"  ! {error}")
+        if summary.built:
+            print(f"  files -> {settings.dossier_dir}/")
+        return
+
+    from sqlalchemy import select
+
+    from internhunter.core.db import Dossier
+
     init_db()
     session = get_session()
     try:
-        jobs = list(session.scalars(select(Job).where(Job.is_internship.is_(True))))
+        if args.action == "show":
+            from internhunter.dossier.build import render_markdown
+
+            dossier = session.scalar(
+                select(Dossier).where(Dossier.company_slug == args.company)
+            )
+            if dossier is None:
+                raise SystemExit(
+                    f"no dossier for {args.company!r} — run: internhunter dossier build "
+                    f"--company {args.company}"
+                )
+            print(render_markdown(dossier), end="")
+        elif args.action == "list":
+            rows = list(session.scalars(select(Dossier)))
+            if not rows:
+                print("no dossiers yet — run `internhunter dossier build`")
+            for d in sorted(rows, key=lambda x: x.company_slug):
+                contact = d.contact_name or (d.contact_channel and "channel") or "—"
+                print(
+                    f"  {d.company_slug:28} {d.confidence:6}  built {d.built_at.date()}  "
+                    f"contact: {contact}"
+                )
     finally:
         session.close()
-    selected = select_notifiable(jobs, min_fit=settings.notify_min_fit)
-    print(f"{len(selected)} notifiable roles")
-    if not selected:
-        return
-    if args.channel in ("discord", "all") and settings.discord_webhook_url:
-        status = send_discord(build_discord_payload(selected), settings.discord_webhook_url)
-        print(f"  discord -> {status}")
-    if args.channel in ("ntfy", "all") and settings.ntfy_topic_url:
-        status = send_ntfy(build_ntfy_message(selected), settings.ntfy_topic_url)
-        print(f"  ntfy -> {status}")
-    if args.channel in ("feed", "all"):
-        write_feed(selected, settings.feed_path)
-        print(f"  feed -> {settings.feed_path}")
+
+
+def _cmd_tracker(args: argparse.Namespace) -> None:
+    from pathlib import Path
+
+    from internhunter.core.db import get_session, init_db
+    from internhunter.tracker import (
+        STAGES,
+        export_csv,
+        list_applications,
+        set_stage,
+        tracker_summary,
+    )
+
+    init_db()
+    session = get_session()
+    try:
+        if args.action == "summary":
+            summary = tracker_summary(session)
+            print(f"{summary.total} tracked ({summary.warm} warm-intro)")
+            for stage in STAGES:
+                print(f"  {stage:20} {summary.by_stage.get(stage, 0)}")
+        elif args.action == "list":
+            apps = list_applications(session, stage=args.stage)
+            if not apps:
+                print("nothing tracked" + (f" at stage {args.stage!r}" if args.stage else ""))
+            for a in apps:
+                flag = "🤝" if a.warm_intro else "❄️"
+                via = f" via {a.connection_name}" if a.connection_name else ""
+                print(f"  #{a.id:<4} [{a.status:>18}] {flag} {a.company} — {a.role}{via}")
+                if args.verbose and a.link:
+                    print(f"        {a.link}")
+        elif args.action == "set":
+            app = set_stage(session, args.ident, args.stage)
+            if app is None:
+                raise SystemExit(f"no tracked application matches {args.ident!r}")
+            session.commit()
+            print(f"#{app.id} {app.company} — {app.role}: stage -> {app.status}")
+        elif args.action == "draft":
+            from internhunter.outreach import format_draft
+            from internhunter.tracker import find_application
+
+            app = find_application(session, args.ident)
+            if app is None:
+                raise SystemExit(f"no tracked application matches {args.ident!r}")
+            print(format_draft(session, app))
+        elif args.action == "intro":
+            from internhunter.tracker import find_application
+
+            app = find_application(session, args.ident)
+            if app is None:
+                raise SystemExit(f"no tracked application matches {args.ident!r}")
+            if app.intro_draft:
+                print(app.intro_draft)
+            elif app.warm_intro:
+                print(f"warm intro via {app.connection_name}, but no draft stored")
+            else:
+                print("cold apply — no connection at this firm (see connections.yaml)")
+        elif args.action == "export":
+            path = Path(args.out)
+            rows = export_csv(session, path)
+            print(f"exported {rows} rows -> {path}")
+    finally:
+        session.close()
 
 
 def _cmd_schedule(args: argparse.Namespace) -> None:
@@ -357,6 +463,7 @@ def _listing_ingestors() -> dict[str, tuple[str, str, str]]:
         "arbeitsagentur": ("arbeitsagentur (DE)", "internhunter.discovery.arbeitsagentur",
                            "ingest_arbeitsagentur"),
         "idealist": ("idealist", "internhunter.discovery.idealist", "ingest_idealist"),
+        "wellfound": ("wellfound", "internhunter.discovery.wellfound", "ingest_wellfound"),
     }
 
 
@@ -365,7 +472,7 @@ def _listing_ingestors() -> dict[str, tuple[str, str, str]]:
 # university login session and is inert without one.
 _ALL_LISTING_SOURCES = ("github", "apis", "linkedin", "usajobs", "bigco", "university",
                         "google_jobs", "indeed", "bluesky", "reddit", "eures",
-                        "arbeitsagentur", "idealist")
+                        "arbeitsagentur", "idealist", "wellfound")
 
 
 def _cmd_ingest(args: argparse.Namespace) -> None:
@@ -452,7 +559,7 @@ def main() -> None:
         choices=[
             "github", "apis", "linkedin", "usajobs", "bigco", "university", "google_jobs",
             "indeed", "handshake", "bluesky", "reddit", "eures", "arbeitsagentur", "idealist",
-            "oflc", "perm", "sbir", "all",
+            "wellfound", "oflc", "perm", "sbir", "all",
         ],
         default="all",
     )
@@ -510,7 +617,45 @@ def main() -> None:
     find_contacts.add_argument("--verify", action="store_true", help="run holehe verification")
 
     notify = subparsers.add_parser("notify")
-    notify.add_argument("--channel", choices=["discord", "ntfy", "feed", "all"], default="all")
+    notify.add_argument(
+        "--channel",
+        choices=["telegram", "discord", "ntfy", "feed", "all"],
+        default="all",
+    )
+    notify.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="show what would alert without sending or marking anything",
+    )
+
+    tracker = subparsers.add_parser("tracker", help="pipeline tracker (stages + export)")
+    tracker_sub = tracker.add_subparsers(dest="action", required=True)
+    tracker_sub.add_parser("summary")
+    stage_help = "found|applied|referral-requested|interview|offer|rejected"
+    tracker_list = tracker_sub.add_parser("list")
+    tracker_list.add_argument("--stage", default=None, help=stage_help)
+    tracker_list.add_argument("-v", "--verbose", action="store_true")
+    tracker_set = tracker_sub.add_parser("set")
+    tracker_set.add_argument("ident", help="application id or job_uid")
+    tracker_set.add_argument("stage", help=stage_help)
+    tracker_intro = tracker_sub.add_parser("intro", help="print the draft intro-request message")
+    tracker_intro.add_argument("ident", help="application id or job_uid")
+    tracker_draft = tracker_sub.add_parser(
+        "draft", help="print the enriched contact + outreach draft for a tracked posting"
+    )
+    tracker_draft.add_argument("ident", help="application id or job_uid")
+    tracker_export = tracker_sub.add_parser("export")
+    tracker_export.add_argument("--out", default="tracker.csv")
+
+    dossier = subparsers.add_parser("dossier", help="company research dossiers")
+    dossier_sub = dossier.add_subparsers(dest="action", required=True)
+    dossier_build = dossier_sub.add_parser("build")
+    dossier_build.add_argument("--company", default=None, help="single firm slug")
+    dossier_build.add_argument("--force", action="store_true", help="ignore staleness window")
+    dossier_build.add_argument("--limit", type=int, default=None, help="max firms this run")
+    dossier_show = dossier_sub.add_parser("show")
+    dossier_show.add_argument("company", help="firm slug (see `dossier list`)")
+    dossier_sub.add_parser("list")
 
     schedule = subparsers.add_parser("schedule")
     schedule.add_argument("--run-now", action="store_true")
@@ -561,6 +706,12 @@ def main() -> None:
         return
     if args.command == "notify":
         _cmd_notify(args)
+        return
+    if args.command == "tracker":
+        _cmd_tracker(args)
+        return
+    if args.command == "dossier":
+        _cmd_dossier(args)
         return
     if args.command == "schedule":
         _cmd_schedule(args)

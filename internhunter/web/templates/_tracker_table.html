@@ -13,13 +13,14 @@
       {{ th('status', 'Status') }}
       <th>Emailed</th>
       <th>Contact</th>
+      <th>Outreach</th>
       {{ th('applied', 'Applied') }}
       <th>Notes</th>
       <th></th>
     </tr>
   </thead>
   <tbody>
-    {% for r in rows %}{% set a = r.a %}{% set cname = r.cname %}{% set cemail = r.cemail %}{% set due_status = r.due_status %}{% include "_tracker_row.html" %}{% else %}<tr><td colspan="10" class="empty">Nothing tracked yet — hit “+ Track” on a job.</td></tr>{% endfor %}
+    {% for r in rows %}{% set a = r.a %}{% set cname = r.cname %}{% set cemail = r.cemail %}{% set due_status = r.due_status %}{% include "_tracker_row.html" %}{% else %}<tr><td colspan="11" class="empty">Nothing tracked yet — hit “+ Track” on a job.</td></tr>{% endfor %}
   </tbody>
 </table>
 </div>

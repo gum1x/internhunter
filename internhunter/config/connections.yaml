@@ -1,0 +1,54 @@
+# Your network graph: firms/domains -> people who can warm-intro you. Edit freely —
+# evaluated by internhunter/referrals.py on every alert and tracker entry. When a matched
+# posting hits a firm listed here it is flagged "warm intro" (🤝) and a draft
+# intro-request message is generated; everything else is a cold apply (❄️).
+#
+# Fields per connection:
+#   name          who you'd ask
+#   relationship  how you know them (used in the draft message)
+#   contact       email / Telegram handle / phone — however you reach them
+#   firms         company names this person can open doors at (fuzzy-matched on slug)
+#   domains       company domains, matched against a job's company_domain
+#   tags          free-form labels
+#   notes         anything else
+
+connections:
+  - name: "GWU faculty (fill in specific professor)"
+    relationship: "my professor / research advisor at GWU"
+    contact: ""
+    firms: []
+    domains: [gwu.edu]
+    tags: [academia, reference]
+    notes: "Strong for research-track and quant-research referrals; ask per-firm."
+
+  - name: "Teach Anything AI team"
+    relationship: "working with the Teach Anything AI team"
+    contact: ""
+    firms: [Teach Anything AI]
+    domains: [teachanything.ai]
+    tags: [ai, startup]
+    notes: "Direct edge for AI/edtech startups; can vouch for shipped work."
+
+  - name: "Polymarket price-discovery research contact"
+    relationship: "collaborating on Polymarket price-discovery research"
+    contact: ""
+    firms: [Polymarket, Kalshi]
+    domains: [polymarket.com, kalshi.com]
+    tags: [quant, prediction-markets]
+    notes: "Best edge for prediction-market and market-microstructure roles."
+
+  - name: "ULIMO contact"
+    relationship: "my work with ULIMO"
+    contact: ""
+    firms: [ULIMO]
+    domains: []
+    tags: [network]
+    notes: ""
+
+  - name: "AffiliateLink contact"
+    relationship: "my work with AffiliateLink"
+    contact: ""
+    firms: [AffiliateLink]
+    domains: []
+    tags: [growth, marketing]
+    notes: "Relevant for growth-strategist roles at marketing/growth-tooling startups."

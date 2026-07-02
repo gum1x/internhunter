@@ -36,6 +36,32 @@ class Settings(BaseSettings):
     claude_bin: str = "claude"  # path to the `claude` CLI for the browser-login backend
     llm_max_tokens: int = 1024
     notify_min_fit: float = 0.6
+    # --- target firms / keyword filter layer (one user-editable file) ---
+    targets_path: Path = Path("internhunter/config/targets.yaml")
+    # --- referral engine (firms/domains -> people in your network) ---
+    connections_path: Path = Path("internhunter/config/connections.yaml")
+    # --- push alert pipeline ---
+    telegram_bot_token: str = ""  # from @BotFather; never commit — env only
+    telegram_chat_id: str = ""  # DM chat id or channel id (e.g. -100123...)
+    enable_scheduled_notify: bool = True
+    notify_interval_min: int = 30
+    # Only jobs first seen inside this window are alert candidates, so the first run of a
+    # pre-populated DB (thousands of historical rows) never floods the channel.
+    notify_lookback_hours: int = 48
+    notify_max_per_run: int = 20
+    # False -> alert on (target match OR discovery_score >= notify_min_fit).
+    # True  -> alert only on jobs matching targets.yaml.
+    notify_require_target_match: bool = False
+    notify_track_alerts: bool = True  # auto-record every alerted job in the tracker
+    # --- company dossiers + outreach enrichment ---
+    pitch_path: Path = Path("internhunter/config/pitch.yaml")
+    dossier_dir: Path = Path("dossiers")
+    dossier_staleness_days: int = 30  # rebuild a firm's dossier after this many days
+    dossier_use_llm: bool = True  # synthesize with the configured LLM backend when available
+    dossier_max_pages: int = 5  # public pages fetched per firm (homepage/about/blog/news/team)
+    dossier_signal_days: int = 180  # "recent signal" window
+    enable_scheduled_dossier: bool = True
+    dossier_interval_min: int = 1440  # daily refresh of stale/missing dossiers
     auth_user: str = ""
     auth_pass: str = ""
     dashboard_limit: int = 2000
@@ -83,6 +109,11 @@ class Settings(BaseSettings):
     enable_indeed: bool = True
     indeed_locations: str = ""  # comma list; "" = nationwide
     indeed_max_pages: int = 0  # 10 cards per page; 0 = full scrape
+    # Wellfound (ex-AngelList Talent) — OFF by default: no official feed exists, the site
+    # sits behind DataDome, and its ToS restricts crawling. Opt-in harvests JSON-LD from
+    # the robots-allowed /company/<slug>/jobs pages only, for slugs you list here.
+    enable_wellfound: bool = False
+    wellfound_companies: str = ""  # comma list of wellfound company slugs
     # Handshake — authenticated. Session auto-created from edu pool when possible.
     handshake_session: Path = Path("handshake_session.json")
     handshake_max_pages: int = 5

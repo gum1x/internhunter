@@ -20,6 +20,12 @@
     <input type="text" name="contact_email" value="{{ cemail }}" placeholder="email" aria-label="Contact email" style="width:11rem"
        hx-post="/tracker/{{ a.id }}/update" hx-target="#trk-{{ a.id }}" hx-swap="outerHTML" hx-trigger="change">
   </td>
+  <td class="outreach">
+    {% if a.warm_intro %}<span title="warm intro via {{ a.connection_name or 'your network' }}">🤝</span>{% endif %}
+    {% if a.dossier_slug %}<span title="dossier: dossiers/{{ a.dossier_slug }}.md">📋</span>
+    {% else %}<span title="no dossier yet — next scheduled build will research this firm">⏳</span>{% endif %}
+    {% if (a.intro_draft if a.warm_intro else a.outreach_draft) %}<span title="draft ready — internhunter tracker draft {{ a.id }}">✉️</span>{% endif %}
+  </td>
   <td><input type="date" name="applied_at" aria-label="Applied date"
          value="{{ a.applied_at.strftime('%Y-%m-%d') if a.applied_at else '' }}"
          hx-post="/tracker/{{ a.id }}/update" hx-target="#trk-{{ a.id }}" hx-swap="outerHTML" hx-trigger="change"></td>

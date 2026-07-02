@@ -16,3 +16,4 @@ internhunter.feed.xml
 logs/
 *.db-shm
 *.db-wal
+dossiers/

@@ -1,0 +1,167 @@
+# Target firms + keyword/filter layer. This is the ONE file to edit as your list grows —
+# no code changes needed. Evaluated by internhunter/match/targets.py against every
+# discovered job; the alert pipeline (`internhunter notify`) pushes a job when it matches
+# here OR clears the discovery-score bar (INTERNHUNTER_NOTIFY_MIN_FIT).
+#
+# Matching semantics:
+#   - a job at a listed firm matches when its title also passes the keyword gates below
+#   - a job anywhere matches when its title contains any `keywords.include` entry
+#   - `keywords.exclude` is a hard veto (senior/staff roles never alert)
+#   - `locations` empty = anywhere; remote jobs pass whenever `remote_ok: true`
+
+enabled: true
+
+firms:
+  # --- quant / prediction markets / trading ---
+  - name: Polymarket
+    domains: [polymarket.com]
+    tags: [quant, prediction-markets]
+    priority: high
+  - name: Kalshi
+    domains: [kalshi.com]
+    tags: [quant, prediction-markets]
+    priority: high
+  - name: Jane Street
+    domains: [janestreet.com]
+    tags: [quant, trading]
+  - name: Hudson River Trading
+    domains: [hudsonrivertrading.com, hudson-trading.com]
+    tags: [quant, trading]
+  - name: Jump Trading
+    domains: [jumptrading.com]
+    tags: [quant, trading]
+  - name: Citadel
+    domains: [citadel.com, citadelsecurities.com]
+    tags: [quant, trading]
+  - name: Two Sigma
+    domains: [twosigma.com]
+    tags: [quant, trading]
+  - name: DRW
+    domains: [drw.com]
+    tags: [quant, trading]
+  - name: IMC Trading
+    domains: [imc.com]
+    tags: [quant, trading]
+  - name: Optiver
+    domains: [optiver.com]
+    tags: [quant, trading]
+  - name: SIG
+    domains: [sig.com]
+    tags: [quant, trading]
+  - name: Five Rings
+    domains: [fiverings.com]
+    tags: [quant, trading]
+  - name: Akuna Capital
+    domains: [akunacapital.com]
+    tags: [quant, trading]
+  - name: Tower Research Capital
+    domains: [tower-research.com]
+    tags: [quant, trading]
+  - name: Virtu Financial
+    domains: [virtu.com]
+    tags: [quant, trading, market-microstructure]
+
+  # --- established tech / finance ---
+  - name: Palantir
+    domains: [palantir.com]
+    tags: [defense, established]
+    priority: high
+  - name: Summit Partners
+    domains: [summitpartners.com]
+    tags: [finance, growth-equity]
+    priority: high
+
+  # --- AI / ML (frontier + applied) ---
+  - name: Anthropic
+    domains: [anthropic.com]
+    tags: [ai, frontier-lab]
+  - name: OpenAI
+    domains: [openai.com]
+    tags: [ai, frontier-lab]
+  - name: Google DeepMind
+    domains: [deepmind.com, deepmind.google]
+    tags: [ai, frontier-lab]
+  - name: Scale AI
+    domains: [scale.com]
+    tags: [ai, applied]
+  - name: Perplexity
+    domains: [perplexity.ai]
+    tags: [ai, applied]
+  - name: Mistral AI
+    domains: [mistral.ai]
+    tags: [ai, applied]
+
+  # --- intelligence / defense-tech ---
+  - name: NSA
+    domains: [nsa.gov, intelligencecareers.gov]
+    tags: [intelligence, government]
+  - name: CIA
+    domains: [cia.gov]
+    tags: [intelligence, government]
+  - name: Anduril
+    domains: [anduril.com]
+    tags: [defense]
+    priority: high
+  - name: Shield AI
+    domains: [shield.ai]
+    tags: [defense]
+
+  # --- startups / early-stage (seed -> Series B) ---
+  - name: Teach Anything AI
+    domains: [teachanything.ai]
+    tags: [ai, startup, network]
+  - name: Ramp
+    domains: [ramp.com]
+    tags: [fintech, startup]
+  - name: Mercury
+    domains: [mercury.com]
+    tags: [fintech, startup]
+  - name: Vercel
+    domains: [vercel.com]
+    tags: [devtools, startup]
+  - name: Retool
+    domains: [retool.com]
+    tags: [devtools, startup]
+
+keywords:
+  # A job title containing ANY of these matches (case-insensitive substring).
+  include:
+    - intern
+    - internship
+    - co-op
+    - "summer analyst"
+    - "quant research"
+    - "quantitative research"
+    - "quantitative trading"
+    - "trading intern"
+    - "founding engineer"
+    - "founding team"
+    - "first engineer"
+    - "growth strategist"
+    - "growth intern"
+    - "growth associate"
+  # Hard veto — never alert on these regardless of firm or score.
+  exclude:
+    - senior
+    - staff
+    - principal
+    - director
+    - "vp "
+    - "vice president"
+    - manager, sr
+    - "sr."
+    - lead
+    - recruiter   # "Campus Recruiter" classifies as internship-adjacent; it isn't one
+    - phd
+
+# Seniority bands you care about; informational tags used in match reasons.
+seniority: [intern, early, founding]
+
+# Empty list = any location. Add entries like "New York", "Washington", "San Francisco"
+# to restrict on-site roles; remote roles always pass while remote_ok is true.
+locations: []
+remote_ok: true
+
+# For sources that expose funding stage (YC / VC-portfolio / Wellfound discovery),
+# keep companies in these stages. Ignored by sources that don't know the stage.
+funding_stages: [pre-seed, seed, series-a, series-b]

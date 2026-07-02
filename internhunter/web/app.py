@@ -18,7 +18,6 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import Select, func, or_, select
-from sqlalchemy.exc import IntegrityError
 
 from internhunter.config.settings import get_settings
 from internhunter.core.db import (
@@ -31,7 +30,9 @@ from internhunter.core.db import (
 )
 
 # Application-tracker pipeline + the badge swapped in when a job is tracked.
-TRACKER_STATUSES = ["To Apply", "Applied", "Interviewing", "Offer", "Rejected"]
+TRACKER_STATUSES = [
+    "To Apply", "Applied", "Referral Requested", "Interviewing", "Offer", "Rejected",
+]
 _TRACKED_BADGE = '<span class="tracked">✓ Tracked</span>'
 
 
@@ -389,7 +390,10 @@ def _role_options() -> list[str]:
 
 
 _EMAIL_RANK = {"verified": 0, "probable": 1, "guessed": 2}
-_STATUS_RANK = {"To Apply": 0, "Applied": 1, "Interviewing": 2, "Offer": 3, "Rejected": 4}
+_STATUS_RANK = {
+    "To Apply": 0, "Applied": 1, "Referral Requested": 2, "Interviewing": 3,
+    "Offer": 4, "Rejected": 5,
+}
 
 
 def _pick_best(contacts: list[Contact]) -> tuple[str | None, str | None]:
@@ -742,24 +746,12 @@ def create_app() -> FastAPI:
                 job = session.scalar(select(Job).where(Job.job_uid == job_uid))
                 if job is None:
                     return HTMLResponse("unknown job", status_code=404)
-                session.add(
-                    Application(
-                        job_uid=job_uid,
-                        status="To Apply",
-                        company=job.company,
-                        company_slug=job.company_slug,
-                        role=job.title,
-                        location=job.location_normalized or job.location_raw,
-                        link=job.canonical_url,
-                        due_date=job.deadline_at,
-                    )
-                )
-                try:
-                    session.commit()
-                except IntegrityError:
-                    # A concurrent request (double-click / two tabs) won the race and
-                    # inserted first — the unique constraint rejected ours. Already tracked.
-                    session.rollback()
+                from internhunter.tracker import track_job as _track
+
+                # track_job is race-safe (SAVEPOINT) and runs the outreach enrichment
+                # pass (dossier attach + register-correct draft), same as alerted jobs.
+                _track(session, job)
+                session.commit()
         finally:
             session.close()
         return HTMLResponse(_TRACKED_BADGE)
